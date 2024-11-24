@@ -63,7 +63,7 @@ def normal(data, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xm
     uncertainties = np.sqrt(np.diag(cov_matrix))
     amp_uncertainty, mu_uncertainty, sigma_uncertainty = uncertainties
     print(f"Parametri ottimizzati:")
-    print(f'-----------------------------------------------\n-----------------------------------------------')
+    print(f'-----------------------------------------------')
     print(f"Ampiezza = {amp} ± {amp_uncertainty}")
     print(f"Media = {mu} ± {mu_uncertainty}")
     print(f"Sigma = {sigma} ± {sigma_uncertainty}")
@@ -160,11 +160,13 @@ def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo=
 
 # REGRESSIONE LINEARE
 def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
+    # Gestione degli errori
     if sx is None or np.all(sx == 0):
         sx = np.zeros_like(x)
     if sy is None or np.all(sy == 0):
         sy = np.zeros_like(y)
 
+    # Gestione dei pesi
     if np.any(sx != 0) and np.any(sy != 0):
         w = 1 / (sy**2 + sx**2)
         sigma_weights = np.sqrt(1 / w)
@@ -181,7 +183,7 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
         sigma_weights = None
         fit_with_weights = False
 
-    # Fit lineare
+    # Fitting lineare
     initial_guess = [1, np.mean(y)]
     if fit_with_weights:
         params, cov_matrix = curve_fit(
@@ -194,18 +196,32 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     uncertainties = np.sqrt(np.diag(cov_matrix))
     m_uncertainty, q_uncertainty = uncertainties
 
-    # Stampa dei parametri
-    print(f"Parametri ottimizzati:")
-    print(f"Inclinazione (m) = {m} ± {m_uncertainty}")
-    print(f"Intercetta (q) = {q} ± {q_uncertainty}")
-
     # Calcolo dei residui
     fit_values = linear(x, *params)
     residui = y - fit_values
 
+    # Chi quadro
+    if fit_with_weights:
+        chi_squared = np.sum(((residui / sigma_weights) ** 2))
+    else:
+        chi_squared = np.sum((residui ** 2) / np.var(y))
+    # Gradi di libertà (numero di dati - numero di parametri)
+    n_data = len(x)
+    n_params = len(params)
+    degrees_of_freedom = n_data - n_params
+    # Chi quadro ridotto
+    chi_squared_reduced = chi_squared / degrees_of_freedom
+
+    # Stampa dei parametri ottimizzati
+    print(f"Parametri ottimizzati:")
+    print(f'-----------------------------------------------')
+    print(f"Inclinazione (m) = {m} ± {m_uncertainty}")
+    print(f"Intercetta (q) = {q} ± {q_uncertainty}")
+    print(f'Chi-squared $\chi^2$ = {chi_squared}')
+    print(f'Reduced chi-squared $\chi^2_r$ = {chi_squared_reduced}')
+
     # Plot dei dati e del fit
     plt.figure(figsize=(6.4, 4.8))
-
     if fit_with_weights:
         plt.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
@@ -233,10 +249,10 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
         plt.scatter(x, residui, color='black', alpha=0.6, label='Residuals', s=10)
     plt.axhline(0, color='red', linestyle='--', lw=2)
     plt.xlabel(xlabel)
-    plt.ylabel("(data - fit) - ylabel")
+    plt.ylabel(f"(data - fit)")
     plt.title("Residuals")
     plt.grid(alpha=0.5)
     plt.legend()
     plt.show()
 
-    return m, q, residui
+    return m, q, residui, chi_squared, chi_squared_reduced
