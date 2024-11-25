@@ -208,12 +208,10 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
         chi_squared = np.sum(((residui / sigma_weights) ** 2))
     else:
         chi_squared = np.sum((residui ** 2) / np.var(y))
-    # Gradi di libertà (numero di dati - numero di parametri)
-    n_data = len(x)
-    n_params = len(params)
-    degrees_of_freedom = n_data - n_params
+    #Gradi di libertà
+    dof = len(x) - len(params)
     # Chi quadro ridotto
-    chi_squared_reduced = chi_squared / degrees_of_freedom
+    chi_squared_reduced = chi_squared / dof
 
     # Stampa dei parametri ottimizzati
     print(f"Parametri ottimizzati:")
