@@ -200,8 +200,7 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     m_uncertainty, q_uncertainty = uncertainties
 
     # Calcolo dei residui
-    fit_values = linear(x, *params)
-    residui = y - fit_values
+    residui = res(y, linear(x, *params))
 
     # Chi quadro
     if fit_with_weights:
@@ -231,7 +230,7 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     else:
         plt.scatter(x, y, color='black', label='Data', s=3)
     
-    plt.plot(x, fit_values, color='red', label='Linear fit', lw=2)
+    plt.plot(x, linear(x, *params), color='red', label='Linear fit', lw=2)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title("Linear Fit")
@@ -297,8 +296,7 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     A_uncertainty, tau_uncertainty, f0_uncertainty = uncertainties
 
     # Calcolo dei residui
-    fit_values = exp(x, *params)
-    residui = y - fit_values
+    residui = res(y, exp(x, *params))
 
     # Chi quadro
     if fit_with_weights:
@@ -328,7 +326,7 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     else:
         plt.scatter(x, y, color='black', label='Data', s=3)
     
-    plt.plot(x, fit_values, color='red', label='Exponential fit', lw=2)
+    plt.plot(x, exp(x, *params), color='red', label='Exponential fit', lw=2)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
     plt.title("Exponential Fit")
