@@ -223,8 +223,8 @@ def fit(func, x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", initial_
     print(f'-----------------------------------------------')
     for i, param in enumerate(params):
         print(f"Param {i} = {param} ± {uncertainties[i]}")
-    print(f'Chi-squared $\chi^2$ = {chi_squared}')
-    print(f'Reduced chi-squared $\chi^2_r$ = {chi_squared_reduced}')
+    print(f'Chi-squared = {chi_squared}')
+    print(f'Reduced chi-squared = {chi_squared_reduced}')
 
     # Plot dei dati e del fit
     plt.figure(figsize=(6.4, 4.8))
@@ -249,7 +249,7 @@ def fit(func, x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", initial_
     if fit_with_weights:
         plt.errorbar(x, residui, xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
-                     fmt='o', color='blue', alpha=0.6, label='Residuals',
+                     fmt='o', color='black', alpha=0.6, label='Residuals',
                      markersize=4, capsize=2)
     else:
         plt.scatter(x, residui, color='black', alpha=0.6, label='Residuals', s=10)
