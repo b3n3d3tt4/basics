@@ -13,6 +13,9 @@ def linear(x, m, q):
 def parabola(a, b, c, x):
     return a*x**2+b*x+c
 
+def exp(A, tau, f0, x):
+    return A*np.exp(tau/x) + f0
+
 def gaussian(x, amp, mu, sigma):
     # return amp * np.exp(-0.5 * ((x - mu) / sigma)**2)
     return amp * norm.pdf(x, loc=mu, scale=sigma)
@@ -256,3 +259,100 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     plt.show()
 
     return m, q, residui, chi_squared, chi_squared_reduced
+
+# Funzione per il fit esponenziale
+def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
+    # Gestione degli errori
+    if sx is None or np.all(sx == 0):
+        sx = np.zeros_like(x)
+    if sy is None or np.all(sy == 0):
+        sy = np.zeros_like(y)
+
+    # Gestione dei pesi
+    if np.any(sx != 0) and np.any(sy != 0):
+        w = 1 / (sy**2 + sx**2)
+        sigma_weights = np.sqrt(1 / w)
+        fit_with_weights = True
+    elif np.any(sx != 0):
+        w = 1 / sx**2
+        sigma_weights = np.sqrt(1 / w)
+        fit_with_weights = True
+    elif np.any(sy != 0):
+        w = 1 / sy**2
+        sigma_weights = np.sqrt(1 / w)
+        fit_with_weights = True
+    else:
+        sigma_weights = None
+        fit_with_weights = False
+
+    # Fitting esponenziale
+    initial_guess = [1, -1, np.mean(y)]
+    if fit_with_weights:
+        params, cov_matrix = curve_fit(
+            exp, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True
+        )
+    else:
+        params, cov_matrix = curve_fit(exp, x, y, p0=initial_guess)
+
+    A, tau, f0 = params
+    uncertainties = np.sqrt(np.diag(cov_matrix))
+    A_uncertainty, tau_uncertainty, f0_uncertainty = uncertainties
+
+    # Calcolo dei residui
+    fit_values = exp(x, *params)
+    residui = y - fit_values
+
+    # Chi quadro
+    if fit_with_weights:
+        chi_squared = np.sum(((residui / sigma_weights) ** 2))
+    else:
+        chi_squared = np.sum((residui ** 2) / np.var(y))
+    dof = len(x) - len(params)
+    # Chi quadro ridotto
+    chi_squared_reduced = chi_squared / dof
+
+    # Stampa dei parametri ottimizzati
+    print(f"Parametri ottimizzati:")
+    print(f'-----------------------------------------------')
+    print(f"A = {A} ± {A_uncertainty}")
+    print(f"Tau = {tau} ± {tau_uncertainty}")
+    print(f"f0 = {f0} ± {f0_uncertainty}")
+    print(f'Chi-squared $\chi^2$ = {chi_squared}')
+    print(f'Reduced chi-squared $\chi^2_r$ = {chi_squared_reduced}')
+
+    # Plot dei dati e del fit
+    plt.figure(figsize=(6.4, 4.8))
+    if fit_with_weights:
+        plt.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
+                     yerr=sy if np.any(sy != 0) else None,
+                     fmt='o', color='black', label='Data',
+                     markersize=3, capsize=2)
+    else:
+        plt.scatter(x, y, color='black', label='Data', s=3)
+    
+    plt.plot(x, fit_values, color='red', label='Exponential fit', lw=2)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.title("Exponential Fit")
+    plt.grid(alpha=0.5)
+    plt.legend()
+    plt.show()
+
+    # Plot dei residui
+    plt.figure(figsize=(6.4, 4.8))
+    if fit_with_weights:
+        plt.errorbar(x, residui, xerr=sx if np.any(sx != 0) else None,
+                     yerr=sy if np.any(sy != 0) else None,
+                     fmt='o', color='blue', alpha=0.6, label='Residuals',
+                     markersize=4, capsize=2)
+    else:
+        plt.scatter(x, residui, color='black', alpha=0.6, label='Residuals', s=10)
+    plt.axhline(0, color='red', linestyle='--', lw=2)
+    plt.xlabel(xlabel)
+    plt.ylabel(f"(data - fit)")
+    plt.title("Residuals")
+    plt.grid(alpha=0.5)
+    plt.legend()
+    plt.show()
+
+    return A, tau, f0, residui, chi_squared, chi_squared_reduced
