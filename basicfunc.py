@@ -13,8 +13,8 @@ def linear(x, m, q):
 def parabola(a, b, c, x):
     return a*x**2+b*x+c
 
-def exp(A, tau, f0, x):
-    return A*np.exp(tau/x) + f0
+def exp(x, A, tau, f0):
+    return A*np.exp(x/tau) + f0
 
 def gaussian(x, amp, mu, sigma):
     # return amp * np.exp(-0.5 * ((x - mu) / sigma)**2)
@@ -283,11 +283,9 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
         fit_with_weights = False
 
     # Fitting esponenziale
-    initial_guess = [1, -1, np.mean(y)]
+    initial_guess = [y[0] - np.min(y), 1.0, np.min(y)]
     if fit_with_weights:
-        params, cov_matrix = curve_fit(
-            exp, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True
-        )
+        params, cov_matrix = curve_fit(exp, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True)
     else:
         params, cov_matrix = curve_fit(exp, x, y, p0=initial_guess)
 
