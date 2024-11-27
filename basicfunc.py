@@ -53,7 +53,7 @@ def chi2(model, params, x, y, sx=None, sy=None):
 
 
 #NORMAL DISTRIBUTION
-def normal(data, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, b=None, param_plot=None):
+def normal(data, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, b=None, n=None):
     frame = inspect.currentframe().f_back
     var_name = [name for name, val in frame.f_locals.items() if val is data][0]
     
@@ -103,6 +103,14 @@ def normal(data, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xm
     data_residui = res(counts_fit, fit_values)
     globals()[f"{var_name}_residui"] = data_residui
     residui = globals()[f"{var_name}_residui"]
+
+    # Calcolo dell'integrale dell'istogramma nel range media ± n*sigma
+    if n is not None:
+        lower_bound = mu - n * sigma
+        upper_bound = mu + n * sigma
+        bins_to_integrate = np.where((bin_centers >= lower_bound) & (bin_centers <= upper_bound))[0]
+        integral = np.sum(counts[bins_to_integrate])
+        print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral}")
 
     # Creiamo i dati della Gaussiana sul range X definito
     if xmin is not None and xmax is not None:
