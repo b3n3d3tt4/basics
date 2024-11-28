@@ -245,8 +245,8 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     print(f'-----------------------------------------------')
     print(f"Inclinazione (m) = {m} ± {m_uncertainty}")
     print(f"Intercetta (q) = {q} ± {q_uncertainty}")
-    print(f'Chi-squared $\chi^2$ = {chi_squared}')
-    print(f'Reduced chi-squared $\chi^2_r$ = {chi_squared_reduced}')
+    print(f'Chi-squared = {chi_squared}')
+    print(f'Reduced chi-squared = {chi_squared_reduced}')
 
     # Plot dei dati e del fit
     plt.figure(figsize=(6.4, 4.8))
@@ -342,8 +342,8 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     print(f"A = {A} ± {A_uncertainty}")
     print(f"Tau = {tau} ± {tau_uncertainty}")
     print(f"f0 = {f0} ± {f0_uncertainty}")
-    print(f'Chi-squared $\chi^2$ = {chi_squared}')
-    print(f'Reduced chi-squared $\chi^2_r$ = {chi_squared_reduced}')
+    print(f'Chi-squared = {chi_squared}')
+    print(f'Reduced chi-squared = {chi_squared_reduced}')
 
     # Plot dei dati e del fit
     plt.figure(figsize=(6.4, 4.8))
