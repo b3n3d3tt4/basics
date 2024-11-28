@@ -311,7 +311,10 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
         fit_with_weights = False
 
     # Fitting esponenziale
-    initial_guess = [y[0] - np.min(y), 1.0, np.min(y)]
+    target_value = np.min(y) + 0.37 * (np.max(y) - np.min(y))  # 63% di decadimento
+    tau_index = np.argmin(np.abs(y - target_value))  # Indice del valore più vicino al target
+    tau_stima = x[tau_index]
+    initial_guess = [np.max(y)-np.min(y), tau_stima, np.min(y)]
     if fit_with_weights:
         params, cov_matrix = curve_fit(exp, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True)
     else:
