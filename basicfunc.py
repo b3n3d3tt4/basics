@@ -198,7 +198,7 @@ def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo=
     return bin_centers, corrected_hist
 
 # REGRESSIONE LINEARE
-def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
+def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title'):
     # Gestione degli errori
     if sx is None or np.all(sx == 0):
         sx = np.zeros_like(x)
@@ -269,7 +269,7 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     plt.plot(x, linear(x, *params), color='red', label='Linear fit', lw=1)
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.title("Linear Fit")
+    plt.title(titolo)
     plt.grid(alpha=0.5)
     plt.legend()
     plt.show()
