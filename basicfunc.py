@@ -319,8 +319,14 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
         sigma_weights = None
         fit_with_weights = False
 
+    # Calcolo di initial_guess in modo sensato
+    A_guess = np.max(y) - np.min(y)  # Assumiamo A come differenza tra il massimo e il minimo
+    tau_guess = np.median(x)  # Una stima iniziale di tau può essere la mediana di x
+    f0_guess = np.min(y)  # Assumiamo f0 come il valore minimo di y
+
+    initial_guess = [A_guess, tau_guess, f0_guess]
+    
     # Fitting esponenziale
-    initial_guess = [y[0] - np.min(y), 1.0, np.min(y)]
     if fit_with_weights:
         params, cov_matrix = curve_fit(exp, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True)
     else:
@@ -386,7 +392,11 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     plt.legend()
     plt.show()
 
-    return A, tau, f0, residui, chi_squared, chi_squared_reduced
+    # Return dei parametri ottimizzati e delle incertezze
+    parametri = np.array([A, tau, f0])
+    incertezze = np.array([A_uncertainty, tau_uncertainty, f0_uncertainty])
+
+    return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 #Fit parabolico con minuti
 def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
