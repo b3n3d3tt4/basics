@@ -464,21 +464,21 @@ def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", 
         plt.show()
 
         # Plot dei residui
-        # plt.figure(figsize=(6.4, 4.8))
-        # if fit_with_weights:
-        #     plt.errorbar(x, residui, xerr=sx if np.any(sx != 0) else None,
-        #                  yerr=sy if np.any(sy != 0) else None,
-        #                  fmt='o', color='blue', alpha=0.6, label='Residuals',
-        #                  markersize=4, capsize=2)
-        # else:
-        #     plt.scatter(x, residui, color='black', alpha=0.6, label='Residuals', s=10)
-        # plt.axhline(0, color='red', linestyle='--', lw=1.5)
-        # plt.xlabel(xlabel)
-        # plt.ylabel(f"(data - fit)")
-        # plt.title("Residuals of the linear fit")
-        # plt.grid(alpha=0.5)
-        # plt.legend()
-        # plt.show()
+        plt.figure(figsize=(6.4, 4.8))
+        if fit_with_weights:
+            plt.errorbar(x, residui, xerr=sx if np.any(sx != 0) else None,
+                         yerr=sy if np.any(sy != 0) else None,
+                         fmt='o', color='blue', alpha=0.6, label='Residuals',
+                         markersize=4, capsize=2)
+        else:
+            plt.scatter(x, residui, color='black', alpha=0.6, label='Residuals', s=10)
+        plt.axhline(0, color='red', linestyle='--', lw=1.5)
+        plt.xlabel(xlabel)
+        plt.ylabel(f"(data - fit)")
+        plt.title("Residuals of the linear fit")
+        plt.grid(alpha=0.5)
+        plt.legend()
+        plt.show()
 
     return m, q, m_uncertainty, q_uncertainty, residui, chi_squared, chi_squared_reduced
 
