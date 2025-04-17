@@ -10,6 +10,7 @@ import iminuit
 from iminuit.cost import LeastSquares
 from scipy.special import erfc
 from scipy.optimize import minimize
+import scipy.signal as signal
 
 def gaussian(x, amp, mu, sigma):
     # return amp * np.exp(-0.5 * ((x - mu) / sigma)**2)
@@ -41,6 +42,14 @@ def gauss_exp_conv(x, A, mu, sigma, tau):
 
 def l_norm(x, a, mu, sigma):
     return (a / (x * sigma * np.sqrt(2 * np.pi))) * np.exp(-((np.log(x) - mu) ** 2) / (2 * sigma ** 2))
+
+# Funzioni di trasferimento per i vari tipi di filtro
+def filtro_basso(omega, R, C):
+    return 1 / (1 + 1j * omega * R * C)
+def filtro_alto(omega, R, C):
+    return (1j * omega * R * C) / (1 + 1j * omega * R * C)
+def filtro_banda(omega, R, C, omega_0, Q):
+    return (1j * omega * R * C) / ((1j * omega) ** 2 + (omega_0 / Q) * (1j * omega) + omega_0**2)
 
 def res(data, fit):
     return data - fit
@@ -606,11 +615,15 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     tau_guess = np.median(x)
     f0_guess = np.min(y)
     initial_guess = [A_guess, tau_guess, f0_guess]
+
+    i1, i2 = 0, 4  # ad esempio: primo e quarto punto
+    t1, t2 = x[i1], x[i2]
+    V1, V2 = y[i1], y[i2]
     
     if fit_with_weights:
         params, cov_matrix = curve_fit(exp, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True)
     else:
-        params, cov_matrix = curve_fit(exp, x, y, p0=[1, 1, 0])
+        params, cov_matrix = curve_fit(exp, x, y, p0=[np.max(y), (-(t2 - t1) / np.log(V2 / V1)), 0])
 
     A, tau, f0 = params
     uncertainties = np.sqrt(np.diag(cov_matrix))
@@ -626,7 +639,7 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     chi_squared_reduced = chi_squared / dof
 
     print(f"A = {A} ± {A_uncertainty}")
-    print(f"Tau = {tau} ± {tau_uncertainty}")
+    print(f"tau = {tau} ± {tau_uncertainty}")
     print(f"f0 = {f0} ± {f0_uncertainty}")
     print(f'Chi-squared = {chi_squared}')
     print(f'Reduced chi-squared = {chi_squared_reduced}')
@@ -675,7 +688,7 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
         ax1 = fig.add_subplot(gs[2, 0])  # Grafico principale
         ax1.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
-                     fmt='*', color='black', label='Data', markersize=6, capsize=2)
+                     fmt='*', color='black', label='Data', markersize=5, capsize=2)
         ax1.plot(x_fit, exp(x_fit, *params), color='red', label='Exponential fit', lw=1.2)
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
@@ -685,7 +698,7 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
 
         # Subplot 3: Residui
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)  # Grafico dei residui con altezza ridotta
-        ax2.scatter(x, residui, color='black', label='Residuals', s=10)
+        ax2.scatter(x, residui, color='black', label='Residuals', s=10, marker='*')
         ax2.axhline(0, color='red', linestyle='--', lw=2)  # Linea orizzontale a y=0
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel("(data - fit)")
@@ -1019,5 +1032,107 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     
     return params, uncertainties, chi_quadro, reduced_chi_quadro, [integral, integral_uncertainty], [x_fit, y_fit, bin_centers, counts]
 
+def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)", titolo='Fit filtro', plot=False):
+    # Lettura dati da file
+    dati = np.loadtxt(filename)
+    frq, vin, vout = dati[:, 0], dati[:, 1], dati[:, 2]
 
+    # Calcolo guadagno in dB
+    gain_dB = 20 * np.log10(vout / vin)
+
+    # Definizione modelli
+    def low_pass(f, f_cut):
+        return 20 * np.log10(1 / np.sqrt(1 + (f / f_cut)**2))
+
+    def high_pass(f, f_cut):
+        return 20 * np.log10(1 / np.sqrt(1 + (f_cut**2 / f**2)))
+
+    def band_pass(f, f0, gamma, A):
+        return 20 * np.log10(A * (f * gamma) / np.sqrt((f**2 - f0**2)**2 + (f * gamma)**2))
+
+    # Scelta modello in base al tipo di filtro
+    if tipo == 'basso':
+        model = low_pass
+        guess = [1000]
+    elif tipo == 'alto':
+        model = high_pass
+        guess = [10000]
+    elif tipo == 'banda':
+        model = band_pass
+        guess = [1000, 1000, 1]  # f0, gamma, A
+    else:
+        raise ValueError("Tipo di filtro non valido. Usa 'basso', 'alto' o 'banda'.")
+
+    # Fit
+    popt, pcov = curve_fit(model, frq, gain_dB, p0=guess)
+    err = np.sqrt(np.diag(pcov))
+
+    # Calcolo residui e chi^2
+    fit_vals = model(frq, *popt)
+    residui = gain_dB - fit_vals
+    chi2 = np.sum(residui**2 / np.var(gain_dB))
+    chi2_red = chi2 / (len(frq) - len(popt))
+
+    # Stampa risultati
+    print(f"f_cut: {popt[0]:.3f} ± {err[0]:.3f}")
+    print(f"Chi² = {chi2:.4f}")
+    print(f"Chi² ridotto = {chi2_red:.4f}")
+
+    # Plot
+    if plot:
+        frq_fit = np.logspace(np.log10(frq.min()), np.log10(frq.max()), 1000)
+        fit_curve = model(frq_fit, *popt)
+
+        fig = plt.figure(figsize=(7, 8))
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
+
+        # Tabella
+        ax_table = fig.add_subplot(gs[:2, 0])
+        ax_table.axis('tight')
+        ax_table.axis('off')
+        table_data = [['f_cut', f"{popt[0]:.3f} ± {err[0]:.3f}"]]
+        table_data += [["Chi²", f"{chi2:.4f}"], ["Chi² rid.", f"{chi2_red:.4f}"]]
+        table = ax_table.table(
+            cellText=table_data,
+            colLabels=["Parametro", "Valore"],
+            loc='center',
+            cellLoc='center',
+            colColours=["#4CAF50", "#4CAF50"],
+            bbox=[0, 0, 1, 1]
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(2)))
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor("black")
+            cell.set_linewidth(1.5)
+            if row == 0:
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_facecolor("lightblue")
+
+        # Fit
+        ax1 = fig.add_subplot(gs[2, 0])
+        ax1.scatter(frq, gain_dB, color='black', label='Dati', s=20, marker='*')
+        ax1.plot(frq_fit, fit_curve, color='red', label='Fit')
+        ax1.set_xscale('log')
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel(ylabel)
+        ax1.set_title(titolo)
+        ax1.grid(alpha=0.5)
+        ax1.legend()
+
+        # Residui
+        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
+        ax2.scatter(frq, residui, color='black', s=20, label='Residui', marker='*')
+        ax2.axhline(0, color='red', linestyle='--', lw=1)
+        ax2.set_xlabel(xlabel)
+        ax2.set_ylabel("Residui")
+        ax2.grid(alpha=0.5)
+        ax2.legend()
+
+        plt.tight_layout()
+        plt.savefig("grafici/bode_fit.pdf")
+        plt.show()
+
+    return popt, err, residui, chi2, chi2_red
 '''ciao baby'''
