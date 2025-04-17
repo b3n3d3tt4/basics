@@ -12,34 +12,45 @@ from scipy.special import erfc
 from scipy.optimize import minimize
 import scipy.signal as signal
 
+#funzione gaussiana
 def gaussian(x, amp, mu, sigma):
     # return amp * np.exp(-0.5 * ((x - mu) / sigma)**2)
     return amp * norm.pdf(x, loc=mu, scale=sigma)
 
+#funzione per calcolare i bin nel fit con istogrammi
 def calculate_bins(data):
     bin_width = 3.49 * np.std(data) / len(data)**(1/3)
     bins = int(np.ceil((max(data) - min(data)) / bin_width))
     return max(bins, 1)
 
+#funzione retta
 def linear(x, m, q):
-    return m*x+q
+    return m * x + q
     
+#funzione parabola
 def parabola(a, b, c, x):
     return a*x**2+b*x+c
 
-def exp(x, A, tau, f0):
-    return A*np.exp(-x/tau) + f0
+#funzione esponenziale
+def exp_pos(x, A, tau, f0): #esponenziale crescente
+    return A * np.exp(x / tau) + f0
+def exp_neg(x, A, tau, f0): ##esponenziale decrescente
+    return A * np.exp(-x / tau) + f0
 
+#funzione lorentziana
 def lorentz(x, A, gamma, x0):
         return A * (gamma / 2)**2 / ((x - x0)**2 + (gamma / 2)**2)
 
+#curva di Wigner
 def wigner(x, a, gamma, x0):
     return a * gamma / ((x - x0)**2 + (gamma / 2)**2)
 
+#funzione convoluzione gaussiana-esponenziale
 def gauss_exp_conv(x, A, mu, sigma, tau):
     arg = (sigma**2 - tau * (x - mu)) / (np.sqrt(2) * sigma * tau)
     return (A / (2 * tau)) * np.exp((sigma**2 - 2 * tau * (x - mu)) / (2 * tau**2)) * erfc(arg)
 
+#funzione log-normale
 def l_norm(x, a, mu, sigma):
     return (a / (x * sigma * np.sqrt(2 * np.pi))) * np.exp(-((np.log(x) - mu) ** 2) / (2 * sigma ** 2))
 
@@ -51,6 +62,7 @@ def filtro_alto(omega, R, C):
 def filtro_banda(omega, R, C, omega_0, Q):
     return (1j * omega * R * C) / ((1j * omega) ** 2 + (omega_0 / Q) * (1j * omega) + omega_0**2)
 
+#funzione per i residui di tutte le funzioni che fitta questa libreria
 def res(data, fit):
     return data - fit
 
@@ -269,110 +281,8 @@ def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     # Restituisci anche max_x insieme ai parametri
     return params, max_x, uncertainties, chi_quadro, reduced_chi_quadro, integral_results, plot_data
 
-#fit spalla compton
-def compton_minuit(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', 
-                   xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
-    if data is not None:
-        frame = inspect.currentframe().f_back
-        var_name = [name for name, val in frame.f_locals.items() if val is data][0]
-
-        # Calcolo bin
-        if b is not None:
-            bins = b
-        else:
-            bins = calculate_bins(data)
-
-        counts, bin_edges = np.histogram(data, bins=bins, density=False)
-        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-    elif bin_centers is not None and counts is not None:
-        var_name = "custom_data"
-        bin_edges = None
-    else:
-        raise ValueError("Devi fornire o `data`, o `bin_centers` e `counts`.")
-
-    sigma_counts = np.sqrt(counts)  # Errori sulle y
-
-    # Range per il fit
-    if xmin is not None and xmax is not None:
-        fit_mask = (bin_centers >= xmin) & (bin_centers <= xmax)
-        bin_centers_fit = bin_centers[fit_mask]
-        counts_fit = counts[fit_mask]
-        sigma_counts_fit = sigma_counts[fit_mask]
-    else:
-        bin_centers_fit = bin_centers
-        counts_fit = counts
-        sigma_counts_fit = sigma_counts
-
-    # Funzione error function (erfc)
-    def fit_function(x, mu, sigma, rate, bkg):
-        return rate * erfc((x - mu) / sigma) + bkg
-
-    # Funzione chi-quadro per il fit
-    def chi2(y_data, y_model, sigma):
-        return np.sum(((y_data - y_model) / sigma) ** 2)
-
-    # Funzione di costo per Minuit
-    def cost_function(mu, sigma, rate, bkg):
-        y_model = fit_function(bin_centers_fit, mu, sigma, rate, bkg)
-        return chi2(counts_fit, y_model, sigma_counts_fit)
-
-    # Parametri iniziali per Minuit
-    theta0 = [np.mean(bin_centers_fit), np.std(bin_centers_fit), np.max(counts_fit), np.min(counts_fit)]
-
-    # Inizializzare Minuit
-    mfit = iminuit.Minuit(cost_function, *theta0, name=['mu', 'sigma', 'rate', 'bkg'])
-    mfit.errordef = mfit.LEAST_SQUARES
-    mfit.limits['mu'] = (xmin, xmax)
-    mfit.limits['sigma'] = (0, np.max(bin_centers_fit))
-    mfit.limits['rate'] = (0, np.max(counts_fit))
-    mfit.limits['bkg'] = (0, None)
-
-    # Eseguire il fit
-    mfit.migrad()
-
-    # Parametri ottimizzati
-    print("Parametri ottimizzati con Minuit:")
-    print(f"mu = {mfit.values['mu']} ± {mfit.errors['mu']}")
-    print(f"sigma = {mfit.values['sigma']} ± {mfit.errors['sigma']}")
-    print(f"rate = {mfit.values['rate']} ± {mfit.errors['rate']}")
-    print(f"bkg = {mfit.values['bkg']} ± {mfit.errors['bkg']}")
-
-    # Generare il modello con i parametri ottimizzati
-    x_fit = np.linspace(xmin, xmax, 1000)
-    y_fit = fit_function(x_fit, *mfit.values)
-
-    # Calcolare l'integrale nell'intervallo mu ± n*sigma
-    mu = mfit.values['mu']
-    sigma = mfit.values['sigma']
-    lower_bound = mu - n * sigma
-    upper_bound = mu + n * sigma
-    bins_to_integrate = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)  # il return è un array booleano con true e false che poi si mette come maskera
-    integral = np.sum(counts[bins_to_integrate])
-    integral_uncertainty = np.sqrt(np.sum(sigma_counts[bins_to_integrate]**2))
-    print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral} ± {integral_uncertainty}")
-
-    # Plot dei dati e del fit
-    if plot:
-        plt.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label="Data")
-        plt.plot(x_fit, y_fit, label='Error function fit', color='red', lw=2)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.title(titolo)
-        # Impostare xlim se x1 e x2 sono diversi da None
-        if x1 is not None and x2 is not None:
-            plt.xlim(x1, x2)
-        # Impostare ylim in modo sensato
-        plt.ylim(0, np.max(counts)+1)
-        plt.grid(alpha=0.5)
-        plt.legend()
-        plt.show()
-
-    int = [integral, integral_uncertainty]
-
-    return mfit.values, mfit.errors, int
-
-#fit spalla compton con curve_fit
-def compton_curvefit(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', 
+#FIT COMPTON CON ERFC
+def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', 
                      xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
     if data is not None:
         frame = inspect.currentframe().f_back
@@ -496,105 +406,207 @@ def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo=
     return bin_centers, corrected_hist
 
 # REGRESSIONE LINEARE
-def linear_regression(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
-    # Gestione degli errori
+def linear_fit(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
     if sx is None or np.all(sx == 0):
         sx = np.zeros_like(x)
     if sy is None or np.all(sy == 0):
         sy = np.zeros_like(y)
 
-    # Gestione dei pesi
     if np.any(sx != 0) and np.any(sy != 0):
         w = 1 / (sy**2 + sx**2)
+        sigma_weights = np.sqrt(1 / w)
         fit_with_weights = True
     elif np.any(sx != 0):
         w = 1 / sx**2
+        sigma_weights = np.sqrt(1 / w)
         fit_with_weights = True
     elif np.any(sy != 0):
         w = 1 / sy**2
+        sigma_weights = np.sqrt(1 / w)
         fit_with_weights = True
     else:
-        w = np.ones_like(y)
+        sigma_weights = None
         fit_with_weights = False
 
-    # Cost function per Minuit
-    least_squares = LeastSquares(x, y, 1/w, linear)
+    m_guess = (y[-1] - y[0]) / (x[-1] - x[0])
+    q_guess = np.mean(y)
+    initial_guess = [m_guess, q_guess]
 
-    # Inizializzazione e fit con Minuit
-    m_init, q_init = 1, np.mean(y)  # Stime iniziali
-    minuit = Minuit(least_squares, m=m_init, q=q_init)
-    minuit.migrad()  # Esegue il fit
+    if fit_with_weights:
+        params, cov_matrix = curve_fit(linear, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True)
+    else:
+        params, cov_matrix = curve_fit(linear, x, y, p0=initial_guess)
 
-    # Estrazione dei risultati
-    m, q = minuit.values['m'], minuit.values['q']
-    m_uncertainty, q_uncertainty = minuit.errors['m'], minuit.errors['q']
+    m, q = params
+    uncertainties = np.sqrt(np.diag(cov_matrix))
+    m_uncertainty, q_uncertainty = uncertainties
 
-    # Calcolo dei residui
-    y_fit = linear(x, m, q)
+    residui = y - linear(x, *params)
+
+    if fit_with_weights:
+        chi_squared = np.sum(((residui / sigma_weights) ** 2))
+    else:
+        chi_squared = np.sum((residui ** 2) / np.var(y))
+    dof = len(x) - len(params)
+    chi_squared_reduced = chi_squared / dof
+
+    print(f"m = {m} ± {m_uncertainty}")
+    print(f"q = {q} ± {q_uncertainty}")
+    print(f'Chi-squared = {chi_squared}')
+    print(f'Reduced chi-squared = {chi_squared_reduced}')
+
+    x_fit = np.linspace(x.min(), x.max(), 1000)
+
+    if plot:
+        fig = plt.figure(figsize=(7, 8))
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
+
+        ax_table = fig.add_subplot(gs[:2, 0])
+        ax_table.axis('tight')
+        ax_table.axis('off')
+
+        data = [
+            ["m", f"{m:.3f} ± {m_uncertainty:.3f}"],
+            ["q", f"{q:.3f} ± {q_uncertainty:.3f}"],
+            ["Chi²", f"{chi_squared:.8f}"],
+            ["Chi² rid.", f"{chi_squared_reduced:.8f}"]
+        ]
+
+        table = ax_table.table(
+            cellText=data,
+            colLabels=["Parametro", "Valore"],
+            loc='center',
+            cellLoc='center',
+            colColours=["#4CAF50", "#4CAF50"],
+            bbox=[0, 0, 1, 1]
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(len(data[0]))))
+
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor("black")
+            cell.set_linewidth(1.5)
+            if row == 0:
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_facecolor("lightblue")
+
+        ax1 = fig.add_subplot(gs[2, 0])
+        ax1.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
+                     yerr=sy if np.any(sy != 0) else None,
+                     fmt='*', color='black', label='Data', markersize=5, capsize=2)
+        ax1.plot(x_fit, linear(x_fit, *params), color='red', label='Linear fit', lw=1.2)
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel(ylabel)
+        ax1.set_title(titolo)
+        ax1.legend()
+        ax1.grid(alpha=0.5)
+
+        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
+        ax2.scatter(x, residui, color='black', label='Residuals', s=10, marker='*')
+        ax2.axhline(0, color='red', linestyle='--', lw=2)
+        ax2.set_xlabel(xlabel)
+        ax2.set_ylabel("(data - fit)")
+        ax2.grid(alpha=0.5)
+        ax2.legend()
+
+        plt.tight_layout()
+        plt.savefig("grafici/linear_fit.pdf")
+        plt.show()
+
+    parametri = np.array([m, q])
+    incertezze = np.array([m_uncertainty, q_uncertainty])
+
+    return parametri, incertezze, residui, chi_squared, chi_squared_reduced
+
+# Funzione per il fit esponenziale
+def exp_fit(x, y, sx=None, sy=None, tipo="decrescente",
+                   xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+    if tipo == "crescente":
+        fit_func = exp_pos
+    elif tipo == "decrescente":
+        fit_func = exp_neg
+    else:
+        raise ValueError("Tipo deve essere 'crescente' o 'decrescente'.")
+
+    if sx is None:
+        sx = np.zeros_like(x)
+    if sy is None:
+        sy = np.zeros_like(y)
+
+    # Pesi
+    if np.any(sy != 0):
+        sigma = sy
+    else:
+        sigma = None
+
+    # Fit con curve_fit
+    p0 = [np.max(y)-np.min(y), (np.max(x)-np.min(x))/2, np.min(y)]
+    params, cov = curve_fit(fit_func, x, y, sigma=sigma, absolute_sigma=True, p0=p0)
+
+    A, tau, f0 = params
+    perr = np.sqrt(np.diag(cov))
+    A_unc, tau_unc, f0_unc = perr
+
+    y_fit = fit_func(x, *params)
     residui = res(y, y_fit)
 
-    # Chi quadro calcolato come (expected - observed)^2 / w
-    chi_squared = np.sum(((y - y_fit)**2) * w)
-    if x.shape[0] > 2:
-        dof = len(x) - 2  # Gradi di libertà
-        chi_squared_reduced = chi_squared / dof
-    else: chi_squared_reduced = 0
+    # Chi quadro
+    if sigma is not None:
+        chi_squared = np.sum(((y - y_fit) / sigma) ** 2)
+    else:
+        chi_squared = np.sum((y - y_fit) ** 2)
+    dof = len(x) - 3
+    chi_squared_reduced = chi_squared / dof if dof > 0 else 0
 
-    # Stampa dei parametri ottimizzati
-    print(f"Parametri ottimizzati:")
-    print(f'-----------------------------------------------')
-    print(f"Inclinazione (m) = {m} ± {m_uncertainty}")
-    print(f"Intercetta (q) = {q} ± {q_uncertainty}")
-    print(f'Chi-squared= {chi_squared}')
-    if x.shape[0] > 2:
-        print(f'Reduced chi-squared= {chi_squared_reduced}')
-    else: print(f'Non ha senso calcolare il chi2 ridotto')
+    print("Parametri ottimizzati:")
+    print(f"A = {A} ± {A_unc}")
+    print(f"tau = {tau} ± {tau_unc}")
+    print(f"f0 = {f0} ± {f0_unc}")
+    print(f"Chi-squared = {chi_squared}")
+    print(f"Reduced Chi-squared = {chi_squared_reduced}")
 
-    # Plot dei dati e del fit
     if plot:
-        plt.figure(figsize=(6.4, 4.8))
-        if fit_with_weights:
-            plt.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
-                         yerr=sy if np.any(sy != 0) else None,
-                         fmt='o', color='black', label='Data',
-                         markersize=3, capsize=2)
+        plt.figure()
+        if sigma is not None:
+            plt.errorbar(x, y, yerr=sigma, fmt='o', label='Data', capsize=2)
         else:
-            plt.scatter(x, y, color='black', label='Data', s=3)
-        
-        plt.plot(x, y_fit, color='red', label='Linear fit', lw=1)
+            plt.scatter(x, y, label='Data')
+        plt.plot(x, y_fit, color='red', label='Exponential fit')
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         plt.title(titolo)
-        plt.grid(alpha=0.5)
         plt.legend()
+        plt.grid(alpha=0.5)
         plt.show()
 
-        # Plot dei residui
-        plt.figure(figsize=(6.4, 4.8))
-        if fit_with_weights:
-            plt.errorbar(x, residui, xerr=sx if np.any(sx != 0) else None,
-                         yerr=sy if np.any(sy != 0) else None,
-                         fmt='o', color='blue', alpha=0.6, label='Residuals',
-                         markersize=4, capsize=2)
-        else:
-            plt.scatter(x, residui, color='black', alpha=0.6, label='Residuals', s=10)
-        plt.axhline(0, color='red', linestyle='--', lw=1.5)
+        # Plot residui
+        plt.figure()
+        plt.scatter(x, residui, label='Residuals', alpha=0.6)
+        plt.axhline(0, color='red', linestyle='--')
         plt.xlabel(xlabel)
-        plt.ylabel(f"(data - fit)")
-        plt.title("Residuals of the linear fit")
+        plt.ylabel("Residuals")
+        plt.title("Residuals of the exponential fit")
         plt.grid(alpha=0.5)
         plt.legend()
         plt.show()
 
-    return m, q, m_uncertainty, q_uncertainty, residui, chi_squared, chi_squared_reduced
+    return A, tau, f0, A_unc, tau_unc, f0_unc, residui, chi_squared, chi_squared_reduced
 
-# Funzione per il fit esponenziale
-def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+#Fit parabolico con minuti
+def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False, tipo='decrescente'):
     if sx is None or np.all(sx == 0):
         sx = np.zeros_like(x)
     if sy is None or np.all(sy == 0):
         sy = np.zeros_like(y)
-    
+
+    if tipo == 'crescente':
+        exp_func = exp_pos
+    elif tipo == 'decrescente':
+        exp_func = exp_neg
+    else:
+        raise ValueError("tipo deve essere 'crescente' o 'decrescente'")
+
     if np.any(sx != 0) and np.any(sy != 0):
         w = 1 / (sy**2 + sx**2)
         sigma_weights = np.sqrt(1 / w)
@@ -616,21 +628,17 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     f0_guess = np.min(y)
     initial_guess = [A_guess, tau_guess, f0_guess]
 
-    i1, i2 = 0, 4  # ad esempio: primo e quarto punto
-    t1, t2 = x[i1], x[i2]
-    V1, V2 = y[i1], y[i2]
-    
     if fit_with_weights:
-        params, cov_matrix = curve_fit(exp, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True)
+        params, cov_matrix = curve_fit(exp_func, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True)
     else:
-        params, cov_matrix = curve_fit(exp, x, y, p0=[np.max(y), (-(t2 - t1) / np.log(V2 / V1)), 0])
+        params, cov_matrix = curve_fit(exp_func, x, y, p0=initial_guess)
 
     A, tau, f0 = params
     uncertainties = np.sqrt(np.diag(cov_matrix))
     A_uncertainty, tau_uncertainty, f0_uncertainty = uncertainties
 
-    residui = res(y, exp(x, *params))
-    
+    residui = res(y, exp_func(x, *params))
+
     if fit_with_weights:
         chi_squared = np.sum(((residui / sigma_weights) ** 2))
     else:
@@ -643,19 +651,17 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     print(f"f0 = {f0} ± {f0_uncertainty}")
     print(f'Chi-squared = {chi_squared}')
     print(f'Reduced chi-squared = {chi_squared_reduced}')
-    
+
     x_fit = np.linspace(x.min(), x.max(), 1000)
 
     if plot:
-        fig = plt.figure(figsize=(7, 8))  # Aumenta le dimensioni per accomodare la tabella e i grafici
-        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])  # Griglia con residui più schiacciati
+        fig = plt.figure(figsize=(7, 8))
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
 
-        # Subplot 1: Tabella
         ax_table = fig.add_subplot(gs[:2, 0])
         ax_table.axis('tight')
         ax_table.axis('off')
 
-        # Dati della tabella
         data = [
             ["A", f"{A:.3f} ± {A_uncertainty:.3f}"],
             ["Tau", f"{tau:.3f} ± {tau_uncertainty:.3f}"],
@@ -669,37 +675,34 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
             colLabels=["Parametro", "Valore"],
             loc='center',
             cellLoc='center',
-            colColours=["#4CAF50", "#4CAF50"],  # Colori per le intestazioni
-            bbox=[0, 0, 1, 1]  # Regola la posizione e la dimensione della tabella
+            colColours=["#4CAF50", "#4CAF50"],
+            bbox=[0, 0, 1, 1]
         )
         table.auto_set_font_size(False)
         table.set_fontsize(10)
         table.auto_set_column_width(col=list(range(len(data[0]))))
 
-        # Personalizza i bordi delle celle
         for (row, col), cell in table.get_celld().items():
             cell.set_edgecolor("black")
             cell.set_linewidth(1.5)
-            if row == 0:  # Intestazioni
+            if row == 0:
                 cell.set_text_props(weight='bold', color='black')
                 cell.set_facecolor("lightblue")
 
-        # Subplot 2: Fit esponenziale
-        ax1 = fig.add_subplot(gs[2, 0])  # Grafico principale
+        ax1 = fig.add_subplot(gs[2, 0])
         ax1.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
                      fmt='*', color='black', label='Data', markersize=5, capsize=2)
-        ax1.plot(x_fit, exp(x_fit, *params), color='red', label='Exponential fit', lw=1.2)
+        ax1.plot(x_fit, exp_func(x_fit, *params), color='red', label='Exponential fit', lw=1.2)
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
         ax1.set_title(titolo)
         ax1.legend()
         ax1.grid(alpha=0.5)
 
-        # Subplot 3: Residui
-        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)  # Grafico dei residui con altezza ridotta
+        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
         ax2.scatter(x, residui, color='black', label='Residuals', s=10, marker='*')
-        ax2.axhline(0, color='red', linestyle='--', lw=2)  # Linea orizzontale a y=0
+        ax2.axhline(0, color='red', linestyle='--', lw=2)
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel("(data - fit)")
         ax2.grid(alpha=0.5)
@@ -709,76 +712,10 @@ def exponential(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
         plt.savefig("grafici/exponential_fit.pdf")
         plt.show()
 
-        parametri = np.array([A, tau, f0])
-        incertezze = np.array([A_uncertainty, tau_uncertainty, f0_uncertainty])
-    
+    parametri = np.array([A, tau, f0])
+    incertezze = np.array([A_uncertainty, tau_uncertainty, f0_uncertainty])
+
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
-
-#Fit parabolico con minuti
-def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
-    # Funzione chi-quadro per Minuit
-    def chi2_parabola(a, b, c):
-        return chi2(parabola, [a, b, c], x, y, sx, sy)
-    
-    # Parametri iniziali per il fit parabolico
-    initial_guess = [1, 1, 0]
-    
-    # Creazione dell'oggetto Minuit e settaggio dei parametri
-    m = Minuit(chi2_parabola, *initial_guess)
-    m.errordef = m.LEAST_SQUARES
-    m.migrad(ncall=10000)
-
-    # Estrazione dei parametri ottimizzati e delle incertezze
-    a_opt, b_opt, c_opt = m.values['a'], m.values['b'], m.values['c']
-    a_err, b_err, c_err = m.errors['a'], m.errors['b'], m.errors['c']
-    
-    # Calcolo dei residui
-    y_model = parabola(x, a_opt, b_opt, c_opt)
-    residui = y - y_model
-    
-    # Calcolo del chi-quadro finale
-    chi2_final = m.fval
-    dof = len(x) - len([a_opt, b_opt, c_opt])  # gradi di libertà
-    chi2_reduced = chi2_final / dof
-
-    # Stampa dei risultati
-    print(f"Parametri ottimizzati:")
-    print(f"a = {a_opt} ± {a_err}")
-    print(f"b = {b_opt} ± {b_err}")
-    print(f"c = {c_opt} ± {c_err}")
-    print(f"Chi-squared = {chi2_final}")
-    print(f"Reduced Chi-squared = {chi2_reduced}")
-
-    # Plot dei dati e del fit
-    plt.figure(figsize=(6.4, 4.8))
-    if sx is not None or sy is not None:
-        plt.errorbar(x, y, xerr=sx, yerr=sy, fmt='o', color='black', label='Data', markersize=3, capsize=2)
-    else:
-        plt.scatter(x, y, color='black', label='Data', s=3)
-    
-    plt.plot(x, parabola(x, a_opt, b_opt, c_opt), color='red', label='Parabolic fit', lw=2)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title("Parabolic Fit")
-    plt.grid(alpha=0.5)
-    plt.legend()
-    plt.show()
-
-    # Plot dei residui
-    plt.figure(figsize=(6.4, 4.8))
-    if sx is not None or sy is not None:
-        plt.errorbar(x, residui, xerr=sx, yerr=sy, fmt='o', color='blue', alpha=0.6, label='Residuals', markersize=4, capsize=2)
-    else:
-        plt.scatter(x, residui, color='black', alpha=0.6, label='Residuals', s=10)
-    plt.axhline(0, color='red', linestyle='--', lw=2)
-    plt.xlabel("X-axis")
-    plt.ylabel("(data - fit)")
-    plt.title("Residuals")
-    plt.grid(alpha=0.5)
-    plt.legend()
-    plt.show()
-
-    return a_opt, b_opt, c_opt, residui, chi2_final, chi2_reduced
 
 #Fit Lorentziana
 def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
