@@ -39,7 +39,9 @@ from scipy.special import erfc
 from scipy.optimize import minimize
 
 
-# DEFINIZIONE DELLE FUNZIONI DI FIT
+###############################################################################################
+#####                                 FUNCTIONS TO FIT                                    #####
+###############################################################################################
 # funzione gaussiana
 def gaussian(x, amp, mu, sigma):
     # return amp * np.exp(-0.5 * ((x - mu) / sigma)**2)
@@ -110,9 +112,9 @@ def chi2(model, params, x, y, sx=None, sy=None):
     
     return chi2_val
 
-#####################################################################################################################
-#####                                              FIT FUNCTIONS:                                               #####
-#####################################################################################################################
+###############################################################################################
+#####                                  FITTING FUNCTIONS                                  #####
+###############################################################################################
 
 # NORMAL DISTRIBUTION
 def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
