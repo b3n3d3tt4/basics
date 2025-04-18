@@ -69,4 +69,4 @@ If you want to use the linear regression function your code will be:
     4. The chi squared
     5. The reduced chi squared
 
-Moreover il will provide you a plot with the labels and title you provided with the data and the fitted function, the residuals and a table with the parameters
+Moreover il will provide you a plot (with the labels and title you wrote) with the data and the fitted function, the residuals and a table with the parameters
