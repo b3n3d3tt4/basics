@@ -1,16 +1,19 @@
 #############################################################################################
-##                          UNIVERSITA' DEGLI STUDI DI PADOVA - DFA                        ##
-##            corso di laurea magistrale in Physics of the fundamental interactions        ##
-##                        Copyright (C) 2023 - 2024, All rights reserved.                  ##
-##                             benedetta.rasera@studenti.unipd.it                          ##
+##                            BASIC FUNCTIONS for PHYSICS ANALYSIS                         ##
+##             Developed during the attendance to the Master's Degree in Physics           ##
+##                    Curriculum: Physics of the Fundamental Interactions                  ##
+##                           at the University of Padua (Italy)                            ##
+##                     Copyright (C) 2023 - 2024, All rights reserved.                     ##
+##                        benedetta.rasera@studenti.unipd.it                               ##
 #############################################################################################
+
 
 ##############################################################################################
 #       This library contains some simple fitting functions for various models               #
 #       useful for laboratory courses in the Bachelor's degree in Physics                    #
-#       and for early lab work in the Master's degree in Physics (at least at Padua).        #
-#       Many of these functions were implemented for data analysis in spectroscopy           #
-#       experiments, but they can also be used for similar purposes.                         #
+#       and for early lab works in the Master's degree in Physics (at least in Padua).       #
+#       Many of these functions were implemented for data analysis in electronics            #
+#       and gamma spectroscopy experiments, but they can also be used for similar purposes.  #
 #       The fitting functions included in this library are:                                  #
 #           - Gaussian fit                                                                   #
 #           - Gaussian-exponential convolution fit                                           #
