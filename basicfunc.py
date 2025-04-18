@@ -1153,14 +1153,14 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     return parametri, incertezze, chi_squared, chi_squared_reduced, [integral, integral_unc], [x_fit, y_fit, bin_centers, counts]
 
 # BODE DIAGRAM FIT
-def bode(f=None, in_=None, out_=None, sf=None, sin=None, sout=None, filename=None, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)", titolo='Fit filtro', plot=False):
+def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=None, tipo='basso', xlabel="Frequenza [Hz]", ylabel="Guadagno [dB]", titolo='Fit filtro', plot=False):
 
     # Lettura dati
     if filename is not None:
         dati = np.loadtxt(filename)
-        frq, vin, vout = dati[:, 0], dati[:, 1], dati[:, 2]
-    elif f is not None and in_ is not None and out_ is not None:
-        frq, vin, vout = np.array(f), np.array(in_), np.array(out_)
+        frq, vin, sin, vout, sout = dati[:, 0], dati[:, 1], dati[:, 2], dati[:, 3], dati[:, 4]
+    elif f is not None and vin is not None and vout is not None:
+        frq, vin, sin, vout, sout = np.array(f), np.array(in_), np.array(erin), np.array(out_), np.array(erout)
     else:
         raise ValueError("Fornire o un filename oppure i vettori f, in_ e out_")
 
