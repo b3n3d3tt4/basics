@@ -26,10 +26,10 @@ For example if you want to use the function called normal to fit a gaussian func
     1. A numpy array with the parameters
     2. A numpy array with the uncertainties
     3. A numpy array with the residuals
-    4. The chi squared\n"
-    5. The reduced chi squared \n"
-    6. The integral of the histogram in the range mu ± n*sigma\n"
-    7. The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing\n
+    4. The chi squared 
+    5. The reduced chi squared
+    6. The integral of the histogram in the range mu ± n*sigma
+    7. The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing
 
 If you want to use the linear regression function your code will be:
 
