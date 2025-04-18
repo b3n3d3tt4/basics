@@ -16,7 +16,6 @@
 #       and gamma spectroscopy experiments, but they can also be used for similar purposes.  #
 #       The fitting functions included in this library are:                                  #
 #           - Gaussian fit                                                                   #
-#           - Gaussian-exponential convolution fit                                           #
 #           - Compton edge fit (based on the error function)                                 #
 #           - Background subtraction from a spectrum                                         #
 #           - Linear fit                                                                     #
@@ -198,7 +197,7 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
 
         table = ax_table.table(
             cellText=data,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Valuse"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],
@@ -334,7 +333,7 @@ def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y
 
         table = ax_table.table(
             cellText=data,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Value"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],
@@ -499,7 +498,7 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
 
         table = ax_table.table(
             cellText=data,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Value"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],
@@ -616,7 +615,7 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", yla
 
         table = ax_table.table(
             cellText=data_tabella,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Value"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],
@@ -727,7 +726,7 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
 
     if plot:
         fig = plt.figure(figsize=(7, 8))
-        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
 
         ax_table = fig.add_subplot(gs[:2, 0])
         ax_table.axis('tight')
@@ -743,7 +742,7 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
 
         table = ax_table.table(
             cellText=data,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Value"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],
@@ -869,7 +868,7 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo=
 
         table = ax_table.table(
             cellText=data,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Value"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],
@@ -981,7 +980,7 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
 
     if plot:
         fig = plt.figure(figsize=(7, 8))
-        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
 
         # Tabella con parametri
         ax_table = fig.add_subplot(gs[:2, 0])
@@ -998,7 +997,7 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
 
         table = ax_table.table(
             cellText=data,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Value"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],
@@ -1029,12 +1028,15 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
 
         # Plot residui
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
-        ax2.errorbar(x, residui, color='black', label='Residuals', fmt='o', markersize=3, capsize=2)
+        ax2.errorbar(x, residui, yerr=sy, color='black', label='Residuals', fmt='o', markersize=3, capsize=2)
         ax2.axhline(0, color='red', linestyle='--', lw=2)
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel("(data - fit)")
         ax2.grid(alpha=0.5)
         ax2.legend()
+
+        plt.tight_layout()
+        plt.show()
 
     parametri = np.array([a, gamma, x0])
     incertezze = np.array([a_unc, gamma_unc, x0_unc])
@@ -1105,7 +1107,7 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
 
     if plot:
         fig = plt.figure(figsize=(7, 8))
-        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
 
         ax_table = fig.add_subplot(gs[:2, 0])
         ax_table.axis('tight')
@@ -1123,7 +1125,7 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
 
         table = ax_table.table(
             cellText=data_table,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Value"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],
@@ -1244,7 +1246,7 @@ def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=N
         fit_curve = model(frq_fit, *popt)
 
         fig = plt.figure(figsize=(7, 8))
-        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
 
         # Tabella
         ax_table = fig.add_subplot(gs[:2, 0])
@@ -1263,7 +1265,7 @@ def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=N
 
         table = ax_table.table(
             cellText=table_data,
-            colLabels=["Parametro", "Valore"],
+            colLabels=["Parameter", "Value"],
             loc='center',
             cellLoc='center',
             colColours=["#4CAF50", "#4CAF50"],

@@ -18,7 +18,6 @@ So far some comments are still in Italian, sooner or later I will translate them
 ## ✅ Included functions
 It is so far provided with 
   - gaussian fitting,
-  - gaussian and exponential convolution fitting
   - background subtraction (for example of background spectra from emission spectra)
   - Compton edge fitting (with an errorfunction)
   - linear fitting
@@ -27,7 +26,8 @@ It is so far provided with
   - Lorentzian fitting
   - Breit-Wigner fitting
   - lognormal fitting
-  - Bode diagram fitting.
+  - Bode diagram fitting
+A fit of a gaussian and an exponential convoluted will be added soon.
 
 ## 🔧 Requirements
 - `numpy`
