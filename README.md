@@ -3,8 +3,8 @@ Basic Physics Analysis
 SHORT DESCRIPTION: little python library for the data analysis of simple university experiments. 
 
 It is so far provided with 
-  - gaussian fitting,
-  - gaussian and exponential convolution fitting
+  1. gaussian fitting,
+  2. gaussian and exponential convolution fitting
   - background subtraction (for example of background spectra from emission spectra)
   - Compton edge fitting (with an errorfunction)
   - linear fitting
