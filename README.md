@@ -27,6 +27,7 @@ It is so far provided with
   - Breit-Wigner fitting
   - lognormal fitting
   - Bode diagram fitting
+
 A fit of a gaussian and an exponential convoluted will be added soon.
 
 ## 🔧 Requirements
