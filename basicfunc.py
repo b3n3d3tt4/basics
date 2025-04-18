@@ -57,7 +57,7 @@ def retta(x, m, q):
     return m * x + q
     
 # funzione parabola
-def parabola(a, b, c, x):
+def parabola(x, a, b, c):
     return a * x**2 + b * x + c
 
 # funzione esponenziale
@@ -782,6 +782,9 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
         ax2.set_ylabel("(data - fit)")
         ax2.grid(alpha=0.5)
         ax2.legend()
+
+        plt.tight_layout()
+        plt.show()
 
     parametri = np.array([a, b, c])
     incertezze = np.array([a_unc, b_unc, c_unc])
