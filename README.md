@@ -39,9 +39,9 @@ If you want to use the linear regression function your code will be:
   
   it will return you:
   
-    1. the parameters of the straight line which best approxximates the data (printed)
-    2. the chi squared and the normalized chi squared (printed)
-    3. a plot with the data and the fitted line (printed)
-    4. a plot with the residuals of the fitted line (printed)
-    5. a list with angular coefficient, intercept, residuals, chi-squared and reduced-chi-squared (memorised in a list you decide - i.e. the variable to which you associate the function)
+    1. A numpy array with the parameters
+    2. A numpy array with the uncertainties
+    3. A numpy array with the residuals
+    4. The chi squared
+    5. The reduced chi squared
     
