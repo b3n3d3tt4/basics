@@ -1,7 +1,7 @@
 #############################################################################################
 ##                            BASIC FUNCTIONS for PHYSICS ANALYSIS                         ##
 ##             Developed during the attendance to the Master's Degree in Physics           ##
-##                    Curriculum: Physics of the Fundamental Interactions                  ##
+##                     Curriculum Physics of the Fundamental Interactions                  ##
 ##                           at the University of Padua (Italy)                            ##
 ##                     Copyright (C) 2023 - 2024, All rights reserved.                     ##
 ##                        benedetta.rasera@studenti.unipd.it                               ##
@@ -40,7 +40,7 @@ from scipy.optimize import minimize
 
 
 ###############################################################################################
-#####                                 FUNCTIONS TO FIT                                    #####
+##                                    FUNCTIONS TO FIT                                       ##
 ###############################################################################################
 # funzione gaussiana
 def gaussian(x, amp, mu, sigma):
@@ -116,7 +116,7 @@ def chi2(model, params, x, y, sx=None, sy=None):
 #####                                  FITTING FUNCTIONS                                  #####
 ###############################################################################################
 
-# NORMAL DISTRIBUTION
+# NORMAL FIT
 def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
@@ -234,7 +234,7 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
 
     return parametri, incertezze, residui, chi_quadro, reduced_chi_quadro, ints, plot
 
-#GAUSS + EXPONENTIAL
+# GAUSS + EXPONENTIAL FIT
 def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
               xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
     if data is not None:
@@ -326,7 +326,7 @@ def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     # Restituisci anche max_x insieme ai parametri
     return params, max_x, uncertainties, chi_quadro, reduced_chi_quadro, integral_results, plot_data
 
-#FIT COMPTON CON ERFC
+# COMPTON EDGE FIT via erfc
 def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
             xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
     print("This fit returns a list which contains, in order:\n"
@@ -442,8 +442,7 @@ def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y
 
     return parametri, incertezze, residui, chi_quadro, reduced_chi, ints, plot_data
 
-
-#SOTTRAZIONE BACKGROUND
+# BACKGROUND SUBTRACTION
 def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo='Title'):
     # Calcola i bin
     if bins is None:
@@ -481,7 +480,7 @@ def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo=
 
     return bin_centers, corrected_hist
 
-#FIT LINEARE
+# LINEAR FIT
 def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
@@ -598,7 +597,7 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
 
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
-# FIT ESPONEZIONALE
+# EXPONENTIAL FIT
 def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
@@ -681,7 +680,7 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", yla
 
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
-#FIT PARABOLICO
+# PARABOLIC FIT
 def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
     print("This fit returns a list which contains, in order:\n"
         "- A numpy array with the parameters\n"
@@ -802,7 +801,7 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
 
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
-#Fit Lorentziana
+# LORENTZIAN FIT
 def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     print("This fit returns a list which contains, in order:\n"
         "- A numpy array with the parameters\n"
@@ -907,7 +906,7 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
 
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
-#FIT BREIT-WIGNER
+# BREIT-WIGNER FIT
 def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
@@ -1030,7 +1029,7 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
 
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
-#LOGNORMALE
+# LOGNORMAL FIT
 def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
@@ -1153,7 +1152,7 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
 
     return parametri, incertezze, chi_squared, chi_squared_reduced, [integral, integral_unc], [x_fit, y_fit, bin_centers, counts]
 
-# FIT DIAGRAMMA DI BODE
+# BODE DIAGRAM FIT
 def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)", titolo='Fit filtro', plot=False):
     # Lettura dati da file
     dati = np.loadtxt(filename)
