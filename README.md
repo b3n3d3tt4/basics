@@ -5,8 +5,11 @@ little python library for the data analysis of simple university experiments (ma
 
 ## 👩‍🔬 Author
 Benedetta Rasera 
+
 `benedetta.rasera@studenti.unipd.it`, `raserab3nedetta@gmail.com`
+
 Developed as part of the Master's Degree in Physics at the University of Padua
+
 If you need any clarification or want to make some notes about possibile errors present in the library please write me an email with "BASICFUNC LIBRARY - GitHub" as object
 
 ## ⚠️ WARNING: 
@@ -33,7 +36,8 @@ It is so far provided with
 
 ## 📦 How to Use
 After importing the file in your code (e.g. as `import basicfunc as bf`), you can use any function directly.
-In the repository you can also find a Jupyter Notebook called `bfexamples.ipynb` where there is an example for each of the functions of the library, please have a look at it
+
+In the repository you can also find a Jupyter Notebook called `bfexamples.ipynb` where there is an example for each of the functions of the library, please have a look at it.
 
 ## ⚙️ An example
 For example if you want to use the function called normal to fit a gaussian function over some data with a normal trend you can write in your code what follows: 
@@ -55,7 +59,7 @@ If you want to use the linear regression function your code will be:
 
   bf.linear(datax, datay, errorx, errory, 'xlabel', 'ylabel', titolo='title', plot=True)
   
-  IMPORTANT: if you don't specify any errorx or errory they will not be taken into consideration while if you specify just one of them this will be taken into account but the other one will not.
+  ⚠️ IMPORTANT: if you don't specify any errorx or errory they will not be taken into consideration while if you specify just one of them this will be taken into account but the other one will not.
   
   it will return you:
   
