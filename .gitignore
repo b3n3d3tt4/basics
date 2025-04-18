@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Ambienti virtuali
+venv/
+.venv/
+env/
+
+# Build e distribuzione
+build/
+dist/
+*.egg-info/
+
+# File temporanei
+*.log
+*.tmp
+
+# File sistema/mac
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
