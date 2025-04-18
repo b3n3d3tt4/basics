@@ -2,8 +2,10 @@ Basic Physics Analysis library
 
 SHORT DESCRIPTION: little python library for the data analysis of simple university experiments. 
 
-WARNING: So far some comments are still in Italian, sooner or later I will translate them to English
+## ⚠️WARNING: 
+So far some comments are still in Italian, sooner or later I will translate them to English
 
+## ✅ Included functions
 It is so far provided with 
   - gaussian fitting,
   - gaussian and exponential convolution fitting
@@ -17,11 +19,17 @@ It is so far provided with
   - lognormal fitting
   - Bode diagram fitting.
 
-It is given as a .py file and once imported (import basicfunc as bf, for example) it can be used in your code for the analysis.
+## 🧪 Requirements
+- `numpy`
+- `matplotlib`
+- `scipy`
 
+## 📦 How to Use
+After importing the file in your code (e.g. as `import basicfunc as bf`), you can use any function directly.
+
+## ⚙️ An example
 For example if you want to use the function called normal to fit a gaussian function over some data with a normal trend you can write in your code what follows: 
-
-  bf.normal(data=data_to_fit, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=xmi, xmax=xma, x1=x_1, x2=x_2, b=k, n=n_i, plot=True) 
+bf.normal(data=data_to_fit, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=xmi, xmax=xma, x1=x_1, x2=x_2, b=k, n=n_i, plot=True) 
   
   and it will return you:
   
