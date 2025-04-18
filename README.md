@@ -1,4 +1,4 @@
-Basic Physics Analysis
+Basic Physics Analysis library
 
 SHORT DESCRIPTION: little python library for the data analysis of simple university experiments. 
 
