@@ -30,7 +30,6 @@ import matplotlib.pyplot as plt
 import statistics as stat
 import matplotlib.cm as cm
 from scipy.optimize import curve_fit
-import inspect
 from scipy.stats import norm
 from scipy.special import erfc
 from scipy.optimize import minimize
@@ -112,8 +111,7 @@ def chi2(model, params, x, y, sx=None, sy=None):
 #####################################################################################################################
 
 # NORMAL DISTRIBUTION
-def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', 
-           xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
       "- A numpy array with the uncertainties\n"
@@ -323,12 +321,18 @@ def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     return params, max_x, uncertainties, chi_quadro, reduced_chi_quadro, integral_results, plot_data
 
 #FIT COMPTON CON ERFC
-def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', 
-                     xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+    print("This fit returns a list which contains, in order:\n"
+      "- A numpy array with the parameters\n"
+      "- A numpy array with the uncertainties\n"
+      "- A numpy array with the residuals\n"
+      "- The chi squared\n"
+      "- The reduced chi squared \n"
+      "- The integral of the histogram in the range mu ± n*sigma\n"
+      "- The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing\n")
+    
+    #Calcolo dei bin
     if data is not None:
-        frame = inspect.currentframe().f_back
-        var_name = [name for name, val in frame.f_locals.items() if val is data][0]
-
         # Calcolo bin
         if b is not None:
             bins = b
