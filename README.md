@@ -1,7 +1,7 @@
 # Basic Physics Analysis library
 
 ## 📝 Short description: 
-little python library for the data analysis of simple university experiments (mainly electronics and gamma spectroscopy experiments) 
+Little python library for the data analysis of simple university experiments (mainly electronics and gamma spectroscopy experiments) 
 
 ## 👩‍🔬 Author
 Benedetta Rasera 
@@ -10,7 +10,7 @@ Benedetta Rasera
 
 Developed as part of the Master's Degree in Physics at the University of Padua
 
-If you need any clarification or want to make some notes about possibile errors present in the library please write me an email with "BASICFUNC LIBRARY - GitHub" as object
+If you need any clarification or want to annotate possibile errors in the library please write me an email with "BASICFUNC LIBRARY - GitHub" in the object. If you are an UNIPD student please write me with your institutional account.
 
 ## ⚠️ WARNING: 
 So far some comments are still in Italian, sooner or later I will translate them to English
