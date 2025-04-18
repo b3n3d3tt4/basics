@@ -217,7 +217,7 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
 
         # --------------------- FIT PRINCIPALE ---------------------
         ax1 = fig.add_subplot(gs[2, 0])
-        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), label='Data', color='black', alpha=0.6)
+        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), label='Data', alpha=0.6)
         ax1.plot(x_fit, y_fit, color='red', label='Gaussian fit', lw=1.5)
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
@@ -252,94 +252,137 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
 # GAUSS + EXPONENTIAL FIT
 def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
               xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+
     if data is not None:
-        # Calcolo bin
         bins = b if b is not None else int(np.sqrt(len(data)))
         counts, bin_edges = np.histogram(data, bins=bins, density=False)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     elif bin_centers is not None and counts is not None:
-        bin_edges = None
+        pass
     else:
-        raise ValueError("Devi fornire o `data`, o `bin_centers` e `counts`.") 
+        raise ValueError("Devi fornire o `data`, o `bin_centers` e `counts`.")
     
-    sigma_counts = np.sqrt(counts)  # Errori sulle y
-
+    sigma_counts = np.sqrt(counts)
+    
     # Range per il fit
     if xmin is not None and xmax is not None:
-        fit_mask = (bin_centers >= xmin) & (bin_centers <= xmax)
-        bin_centers_fit = bin_centers[fit_mask]
-        counts_fit = counts[fit_mask]
-        sigma_counts_fit = sigma_counts[fit_mask]
+        mask = (bin_centers >= xmin) & (bin_centers <= xmax)
+        bin_centers_fit = bin_centers[mask]
+        counts_fit = counts[mask]
+        sigma_counts_fit = sigma_counts[mask]
     else:
         bin_centers_fit = bin_centers
         counts_fit = counts
         sigma_counts_fit = sigma_counts
 
-    # Fit con convoluzione gaussiana-esponenziale
-    initial_guess = [max(counts_fit), np.mean(bin_centers_fit), np.std(bin_centers_fit), 1.0]
-    params, cov_matrix = curve_fit(gauss_exp_conv, bin_centers_fit, counts_fit, sigma=sigma_counts_fit, p0=initial_guess)
+    # Guess iniziali
+    A_guess = np.max(counts_fit)
+    mu_guess = bin_centers_fit[np.argmax(counts_fit)]
+    sigma_guess = np.std(bin_centers_fit)
+    tau_guess = sigma_guess  # stima iniziale ragionevole
+    p0 = [A_guess, mu_guess, sigma_guess, tau_guess]
+
+    # Fit
+    try:
+        params, cov = curve_fit(gauss_exp_conv, bin_centers_fit, counts_fit, sigma=sigma_counts_fit, p0=p0, absolute_sigma=True, maxfev=10000)
+    except RuntimeError:
+        print("⚠️ Fit fallito! Prova a cambiare il range o i guess iniziali.")
+        return None
+
     amp, mu, sigma, tau = params
-    uncertainties = np.sqrt(np.diag(cov_matrix))
-    amp_uncertainty, mu_uncertainty, sigma_uncertainty, tau_uncertainty = uncertainties
-    
-    # Calcolare il massimo numericamente
-    def neg_gauss_exp(x):
-        return -gauss_exp_conv(x, *params)
-    result = minimize(neg_gauss_exp, mu)  # Minimizzare la funzione negativa
-    max_x = result.x[0]  # Il valore di x dove la funzione raggiunge il massimo
-    
-    print(f"Valore di x al massimo: {max_x}")
-    
-    # Stampa dei parametri ottimizzati
-    print(f"Parametri ottimizzati:")
-    print(f'-----------------------------------------------')
-    print(f"Ampiezza = {amp} ± {amp_uncertainty}")
-    print(f"Media = {mu} ± {mu_uncertainty}")
-    print(f"Sigma = {sigma} ± {sigma_uncertainty}")
-    print(f"Tau = {tau} ± {tau_uncertainty}")
-    
-    # Calcolo del chi-quadro
+    amp_unc, mu_unc, sigma_unc, tau_unc = np.sqrt(np.diag(cov))
+
+    # Calcolo massimo
+    result = minimize(lambda x: -gauss_exp_conv(x, *params), x0=mu)
+    max_x = result.x[0] if result.success else mu
+
+    # Fit y
     fit_values = gauss_exp_conv(bin_centers_fit, *params)
-    chi_quadro = np.sum(((counts_fit - fit_values) / sigma_counts_fit) ** 2)
-    degrees_of_freedom = len(counts_fit) - len(params)
-    reduced_chi_quadro = chi_quadro / degrees_of_freedom
-    print(f"Chi-quadro = {chi_quadro}")
-    print(f"Chi-quadro ridotto = {reduced_chi_quadro}")
-    
-    # Calcolo dell'integrale dell'istogramma nel range media ± n*sigma
+    chi2 = np.sum(((counts_fit - fit_values) / sigma_counts_fit) ** 2)
+    dof = len(counts_fit) - len(params)
+    chi2_red = chi2 / dof
+
+    residui = counts_fit - fit_values
+
+    # Integrale nell'intervallo
+    integral = integral_unc = None
     if n is not None:
-        lower_bound = mu - n * sigma
-        upper_bound = mu + n * sigma
-        bins_to_integrate = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)
-        integral = int(np.sum(counts[bins_to_integrate]))
-        integral_uncertainty = int(np.sqrt(np.sum(sigma_counts[bins_to_integrate]**2)))
-        print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral} ± {integral_uncertainty}")
-    
-    # Creiamo i dati della funzione di fit sul range X definito
+        lower = mu - n * sigma
+        upper = mu + n * sigma
+        mask_integral = (bin_centers >= lower) & (bin_centers <= upper)
+        integral = int(np.sum(counts[mask_integral]))
+        integral_unc = int(np.sqrt(np.sum(sigma_counts[mask_integral] ** 2)))
+        print(f"Integrale nell'intervallo [{lower:.2f}, {upper:.2f}] = {integral} ± {integral_unc}")
+
+    # Dati del fit
     x_fit = np.linspace(xmin if xmin is not None else bin_centers[0],
                         xmax if xmax is not None else bin_centers[-1], 10000)
     y_fit = gauss_exp_conv(x_fit, *params)
-    
+
+    # ------------------------ PLOT ------------------------
     if plot:
-        # Plot dell'istogramma e del fit
-        plt.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label="Data")
-        plt.plot(x_fit, y_fit, color='red', label='Gauss-Exp fit', lw=1.5)
-        plt.axvline(max_x, color='blue', linestyle='--', label='Mu')
-        # plt.ylim(0, np.max(y_fit) * 1.1)
-        plt.xlim(x1 if x1 is not None else mu - 3 * sigma,
-                 x2 if x2 is not None else mu + 3 * sigma)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.title(titolo)
-        plt.grid(alpha=0.5)
-        plt.legend()
-        plt.show()
-    
+        fig = plt.figure(figsize=(8, ))
+        gs = fig.add_gridspec(5, 1, height_ratios=[2, 0.6, 5, 0.6, 1])
+
+        ax_table = fig.add_subplot(gs[:2, 0])
+        ax_table.axis('tight')
+        ax_table.axis('off')
+
+        data_table = [
+            ["A", f"{amp:.3f} ± {amp_unc:.3f}"],
+            ["μ", f"{mu:.3f} ± {mu_unc:.3f}"],
+            ["σ", f"{sigma:.3f} ± {sigma_unc:.3f}"],
+            ["τ", f"{tau:.3f} ± {tau_unc:.3f}"],
+            ["Chi²", f"{chi2:.8f}"],
+            ["Chi² rid.", f"{chi2_red:.8f}"]
+        ]
+
+        table = ax_table.table(
+            cellText=data_table,
+            colLabels=["Parametro", "Valore"],
+            loc='center',
+            cellLoc='center',
+            colColours=["#4CAF50", "#4CAF50"],
+            bbox=[0, 0, 1, 1]
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(len(data_table[0]))))
+
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor("black")
+            cell.set_linewidth(1.5)
+            if row == 0:
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_facecolor("lightblue")
+
+        ax1 = fig.add_subplot(gs[2, 0])
+        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label="Data", color='black')
+        ax1.plot(x_fit, y_fit, color='red', label='Gauss-Exp fit', lw=1.5)
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel(ylabel)
+        ax1.set_title(titolo)
+        ax1.set_xlim(x1 if x1 is not None else mu - 3 * sigma,
+                     x2 if x2 is not None else mu + 3 * sigma)
+        ax1.set_ylim(0, np.max(y_fit) * 1.1)
+        ax1.grid(alpha=0.5)
+        ax1.legend()
+
+        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
+        residuals = counts - gauss_exp_conv(bin_centers, *params)
+        ax2.bar(bin_centers, residuals, width=(bin_centers[1] - bin_centers[0]), color='gray', alpha=0.7)
+        ax2.axhline(0, color='red', linestyle='--', lw=2)
+        ax2.set_ylabel("Residui")
+        ax2.set_xlabel(xlabel)
+        ax2.grid(alpha=0.5)
+
+    # OUTPUT
     plot_data = [x_fit, y_fit, bin_centers, counts]
-    integral_results = [integral, integral_uncertainty] if n is not None else None
-    
-    # Restituisci anche max_x insieme ai parametri
-    return params, max_x, uncertainties, chi_quadro, reduced_chi_quadro, integral_results, plot_data
+    integral_data = [integral, integral_unc] if integral is not None else None
+    parametri = np.array([amp, mu, sigma, tau])
+    incertezze = np.array([amp_unc, mu_unc, sigma_unc, tau_unc])
+
+    return parametri, max_x, incertezze, chi2, chi2_red, integral_data, plot_data
 
 # COMPTON EDGE FIT via erfc
 def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
@@ -445,7 +488,7 @@ def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y
 
         # --------------------- FIT PRINCIPALE ---------------------
         ax1 = fig.add_subplot(gs[2, 0])
-        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label='Data', color='black')
+        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label='Data')
         ax1.plot(x_fit, y_fit, color='red', label='Fit con funzione erfc', lw=1.5)
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
@@ -667,6 +710,7 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", yla
     perr = np.sqrt(np.diag(cov))
     A_unc, tau_unc, f0_unc = perr
 
+    x_fit = np.linspace(x.min(), x.max(), 1000)
     y_fit = fit_func(x, *params)
     residui = res(y, y_fit)
 
@@ -687,28 +731,64 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", yla
 
     if plot:
         fig = plt.figure(figsize=(7, 8))
-        if sigma is not None:
-            plt.errorbar(x, y, yerr=sigma, fmt='o', label='Data', capsize=2)
-        else:
-            plt.errorbar(x, y, fmt='o', label='Data', capsize=2, markersize=3)
-        plt.plot(x, y_fit, color='red', label='Exponential fit')
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.title(titolo)
-        plt.legend()
-        plt.grid(alpha=0.5)
-        plt.show()
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
+
+        # Tabella dei parametri
+        ax_table = fig.add_subplot(gs[:2, 0])
+        ax_table.axis('tight')
+        ax_table.axis('off')
+
+        data_tabella = [
+            ["A", f"{A:.3f} ± {A_unc:.3f}"],
+            ["τ", f"{tau:.3f} ± {tau_unc:.3f}"],
+            ["f₀", f"{f0:.3f} ± {f0_unc:.3f}"],
+            ["Chi²", f"{chi_squared:.8f}"],
+            ["Chi² rid.", f"{chi_squared_reduced:.8f}"]
+        ]
+
+        table = ax_table.table(
+            cellText=data_tabella,
+            colLabels=["Parametro", "Valore"],
+            loc='center',
+            cellLoc='center',
+            colColours=["#4CAF50", "#4CAF50"],
+            bbox=[0, 0, 1, 1]
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(len(data_tabella[0]))))
+
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor("black")
+            cell.set_linewidth(1.5)
+            if row == 0:
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_facecolor("lightblue")
+
+        # Plot fit
+        ax1 = fig.add_subplot(gs[2, 0])
+        ax1.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
+                        yerr=sy if np.any(sy != 0) else None,
+                        fmt='o', color='black', label='Dati', markersize=3, capsize=2)
+        ax1.plot(x_fit, fit_func(x_fit, *params), color='red', label='Exponential fit', lw=1.2)
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel(ylabel)
+        ax1.set_title(titolo)
+        ax1.legend()
+        ax1.grid(alpha=0.5)
 
         # Plot residui
-        plt.figure()
-        plt.errorbar(x, residui, label='Residuals', alpha=0.6)
-        plt.axhline(0, color='red', linestyle='--')
-        plt.xlabel(xlabel)
-        plt.ylabel("Residuals")
-        plt.title("Residuals of the exponential fit")
-        plt.grid(alpha=0.5)
-        plt.legend()
+        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
+        ax2.errorbar(x, residui, color='black', label='Residui', markersize=3, fmt='o')
+        ax2.axhline(0, color='red', linestyle='--', lw=2)
+        ax2.set_xlabel(xlabel)
+        ax2.set_ylabel("Residui")
+        ax2.grid(alpha=0.5)
+        ax2.legend()
+
+        plt.tight_layout()
         plt.show()
+
 
     parametri = np.array([A, tau, f0])
     incertezze = np.array([A_unc, tau_unc, f0_unc])
@@ -1003,7 +1083,7 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     y_fit = wigner(x_fit, *params)
 
     if plot:
-        fig = plt.figure(figsize=(7, 8))
+        fig = plt.figure(figsize=(8, 9))
         gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
 
         # Tabella con parametri
