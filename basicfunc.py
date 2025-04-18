@@ -25,10 +25,6 @@
 #           - fit diagramma di Bode (per filtri passa alto, passa basso e passa banda)       #
 ##############################################################################################
 
-
-
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 import statistics as stat
@@ -36,56 +32,54 @@ import matplotlib.cm as cm
 from scipy.optimize import curve_fit
 import inspect
 from scipy.stats import norm
-from iminuit import Minuit
-import iminuit
-from iminuit.cost import LeastSquares
 from scipy.special import erfc
 from scipy.optimize import minimize
-import scipy.signal as signal
 
-#funzione gaussiana
+
+# DEFINIZIONE DELLE FUNZIONI DI FIT
+# funzione gaussiana
 def gaussian(x, amp, mu, sigma):
     # return amp * np.exp(-0.5 * ((x - mu) / sigma)**2)
     return amp * norm.pdf(x, loc=mu, scale=sigma)
 
-#funzione per calcolare i bin nel fit con istogrammi
+# funzione per calcolare i bin nel fit con istogrammi
 def calculate_bins(data):
     bin_width = 3.49 * np.std(data) / len(data)**(1/3)
     bins = int(np.ceil((max(data) - min(data)) / bin_width))
     return max(bins, 1)
 
-#funzione retta
+# funzione retta
 def retta(x, m, q):
     return m * x + q
     
-#funzione parabola
+# funzione parabola
 def parabola(a, b, c, x):
     return a * x**2 + b * x + c
 
-#funzione esponenziale
+# funzione esponenziale
 def exp_pos(x, A, tau, f0): #esponenziale crescente
     return A * np.exp(x / tau) + f0
 def exp_neg(x, A, tau, f0): ##esponenziale decrescente
     return A * np.exp(-x / tau) + f0
 
-#funzione lorentziana
+# funzione lorentziana
 def lorentz(x, A, gamma, x0):
         return A * (gamma / 2)**2 / ((x - x0)**2 + (gamma / 2)**2)
 
-#curva di Wigner
+# curva di Wigner
 def wigner(x, a, gamma, x0):
     return a * gamma / ((x - x0)**2 + (gamma / 2)**2)
 
-#funzione convoluzione gaussiana-esponenziale
+# funzione convoluzione gaussiana-esponenziale
 def gauss_exp_conv(x, A, mu, sigma, tau):
     arg = (sigma**2 - tau * (x - mu)) / (np.sqrt(2) * sigma * tau)
     return (A / (2 * tau)) * np.exp((sigma**2 - 2 * tau * (x - mu)) / (2 * tau**2)) * erfc(arg)
 
-#funzione log-normale
+# funzione log-normale
 def l_norm(x, a, mu, sigma):
     return (a / (x * sigma * np.sqrt(2 * np.pi))) * np.exp(-((np.log(x) - mu) ** 2) / (2 * sigma ** 2))
 
-# Funzioni di trasferimento per i vari tipi di filtro
+# funzioni di trasferimento per i vari tipi di filtro
 def filtro_basso(omega, R, C):
     return 1 / (1 + 1j * omega * R * C)
 def filtro_alto(omega, R, C):
@@ -113,10 +107,22 @@ def chi2(model, params, x, y, sx=None, sy=None):
     
     return chi2_val
 
+#####################################################################################################################
+#####                                             FUNZIONI DI FIT:                                              #####
+#####################################################################################################################
 
-#NORMAL DISTRIBUTION
+# NORMAL DISTRIBUTION
 def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', 
            xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+    print("This fit returns a list which contains, in order:\n"
+      "- A numpy array with the parameters\n"
+      "- A numpy array with the uncertainties\n"
+      "- A numpy array with the residuals\n"
+      "- The chi squared\n"
+      "- The reduced chi squared \n"
+      "- The integral of the histogram in the range mu ± n*sigma\n"
+      "- The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing\n")
+    
     if data is not None:
         # Calcolo bin
         if b is not None:
@@ -150,12 +156,14 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
     params, cov_matrix = curve_fit(gaussian, bin_centers_fit, counts_fit, p0=initial_guess)
     amp, mu, sigma = params
     uncertainties = np.sqrt(np.diag(cov_matrix))
-    amp_uncertainty, mu_uncertainty, sigma_uncertainty = uncertainties
+    amp_unc, mu_unc, sigma_unc = uncertainties
+
+    # Stampa a schermo dei parametri ottimizzati
     print(f"Parametri ottimizzati:")
     print(f'-----------------------------------------------')
-    print(f"Ampiezza = {amp} ± {amp_uncertainty}")
-    print(f"Media = {mu} ± {mu_uncertainty}")
-    print(f"Sigma = {sigma} ± {sigma_uncertainty}")
+    print(f"Ampiezza = {amp} ± {amp_unc}")
+    print(f"Media = {mu} ± {mu_unc}")
+    print(f"Sigma = {sigma} ± {sigma_unc}")
 
     # Calcolo del chi-quadro
     fit_values = gaussian(bin_centers_fit, *params)
@@ -165,7 +173,7 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
     print(f"Chi-quadro = {chi_quadro}")
     print(f"Chi-quadro ridotto = {reduced_chi_quadro}")
 
-    # Residui
+    # Calcolo dei residui
     residui = res(counts_fit, fit_values)
 
     # Calcolo dell'integrale dell'istogramma nel range media ± n*sigma
@@ -174,8 +182,8 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
         upper_bound = mu + n * sigma
         bins_to_integrate = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)  # il return è un array booleano con true e false che poi si mette come maskera
         integral = int(np.sum(counts[bins_to_integrate]))
-        integral_uncertainty = int(np.sqrt(np.sum(sigma_counts[bins_to_integrate]**2)))
-        print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral} ± {integral_uncertainty}")
+        integral_unc = int(np.sqrt(np.sum(sigma_counts[bins_to_integrate]**2)))
+        print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral} ± {integral_unc}")
 
     # Creiamo i dati della Gaussiana sul range X definito
     if xmin is not None and xmax is not None:
@@ -201,8 +209,7 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
         plt.show()
 
         # Plot dei residui
-        plt.errorbar(bin_centers_fit, residui, yerr=sigma_counts_fit, alpha=0.6, label="Residuals", fmt='o',
-                     markersize=4, capsize=2)
+        plt.errorbar(bin_centers_fit, residui, yerr=sigma_counts_fit, alpha=0.6, label="Residuals", fmt='o', markersize=3, capsize=2)
         plt.axhline(0, color='black', linestyle='--', lw=2)
         if xmin is not None and xmax is not None:
             plt.xlim(xmin, xmax)
@@ -215,10 +222,13 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
         plt.legend()
         plt.show()
 
-    plot = [x_fit, y_fit, bin_centers, counts]
-    ints = [integral, integral_uncertainty]
+    plot = np.array([x_fit, y_fit, bin_centers, counts])
+    ints = np.array([integral, integral_unc])
 
-    return params, uncertainties, residui, chi_quadro, reduced_chi_quadro, ints, plot
+    parametri = np.array([amp, mu, sigma])
+    incertezze = np.array([amp_unc, mu_unc, sigma_unc])
+
+    return parametri, incertezze, residui, chi_quadro, reduced_chi_quadro, ints, plot
 
 #GAUSS + EXPONENTIAL
 def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
@@ -423,7 +433,6 @@ def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo=
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     # Visualizzazione
-    #QUI NON HA SENSO PLT.HIST PERCHé QUELLO USA UN ARRAY DI DATI E CREA LUI L'ISTOGRAMMA MENTRE NOI ABBIAMO UN ARRAY GIà CON I COUNTS BIN PER BIN
     plt.figure(figsize=(6.4, 4.8))
     plt.step(bin_centers, corrected_hist, label="Background subtracted", color='blue')
     # plt.bar(bin_centers, corrected_hist, width=np.diff(bin_edges), color='blue', alpha=0.5, label="Background subtracted") questo fa le barre colorate
@@ -438,6 +447,13 @@ def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo=
 
 #FIT LINEARE
 def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+    print("This fit returns a list which contains, in order:\n"
+      "- A numpy array with the parameters\n"
+      "- A numpy array with the uncertainties\n"
+      "- A numpy array with the residuals\n"
+      "- The chi squared\n"
+      "- The reduced chi squared \n")
+    
     if sx is None or np.all(sx == 0):
         sx = np.zeros_like(x)
     if sy is None or np.all(sy == 0):
@@ -470,9 +486,9 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
 
     m, q = params
     uncertainties = np.sqrt(np.diag(cov_matrix))
-    m_uncertainty, q_uncertainty = uncertainties
+    m_unc, q_unc = uncertainties
 
-    residui = y - linear(x, *params)
+    residui = np.array(y - retta(x, *params))
 
     if fit_with_weights:
         chi_squared = np.sum(((residui / sigma_weights) ** 2))
@@ -481,8 +497,8 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
     dof = len(x) - len(params)
     chi_squared_reduced = chi_squared / dof
 
-    print(f"m = {m} ± {m_uncertainty}")
-    print(f"q = {q} ± {q_uncertainty}")
+    print(f"m = {m} ± {m_unc}")
+    print(f"q = {q} ± {q_unc}")
     print(f'Chi-squared = {chi_squared}')
     print(f'Reduced chi-squared = {chi_squared_reduced}')
 
@@ -497,8 +513,8 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
         ax_table.axis('off')
 
         data = [
-            ["m", f"{m:.3f} ± {m_uncertainty:.3f}"],
-            ["q", f"{q:.3f} ± {q_uncertainty:.3f}"],
+            ["m", f"{m:.3f} ± {m_unc:.3f}"],
+            ["q", f"{q:.3f} ± {q_unc:.3f}"],
             ["Chi²", f"{chi_squared:.8f}"],
             ["Chi² rid.", f"{chi_squared_reduced:.8f}"]
         ]
@@ -525,8 +541,8 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
         ax1 = fig.add_subplot(gs[2, 0])
         ax1.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
-                     fmt='*', color='black', label='Data', markersize=5, capsize=2)
-        ax1.plot(x_fit, linear(x_fit, *params), color='red', label='Linear fit', lw=1.2)
+                     fmt='o', color='black', label='Data', markersize=3, capsize=2)
+        ax1.plot(x_fit, retta(x_fit, *params), color='red', label='Linear fit', lw=1.2)
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
         ax1.set_title(titolo)
@@ -534,7 +550,7 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
         ax1.grid(alpha=0.5)
 
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
-        ax2.scatter(x, residui, color='black', label='Residuals', s=10, marker='*')
+        ax2.errorbar(x, residui, color='black', label='Residuals', markersize=3, fmt='o')
         ax2.axhline(0, color='red', linestyle='--', lw=2)
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel("(data - fit)")
@@ -542,13 +558,19 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
         ax2.legend()
 
     parametri = np.array([m, q])
-    incertezze = np.array([m_uncertainty, q_uncertainty])
+    incertezze = np.array([m_unc, q_unc])
 
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 # FIT ESPONEZIONALE
-def exponential(x, y, sx=None, sy=None, tipo="decrescente",
-                   xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+    print("This fit returns a list which contains, in order:\n"
+      "- A numpy array with the parameters\n"
+      "- A numpy array with the uncertainties\n"
+      "- A numpy array with the residuals\n"
+      "- The chi squared\n"
+      "- The reduced chi squared \n")
+    
     if tipo == "crescente":
         fit_func = exp_pos
     elif tipo == "decrescente":
@@ -598,7 +620,7 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente",
         if sigma is not None:
             plt.errorbar(x, y, yerr=sigma, fmt='o', label='Data', capsize=2)
         else:
-            plt.scatter(x, y, label='Data')
+            plt.errorbar(x, y, fmt='o', label='Data', capsize=2, markersize=3)
         plt.plot(x, y_fit, color='red', label='Exponential fit')
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
@@ -609,7 +631,7 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente",
 
         # Plot residui
         plt.figure()
-        plt.scatter(x, residui, label='Residuals', alpha=0.6)
+        plt.errorbar(x, residui, label='Residuals', alpha=0.6)
         plt.axhline(0, color='red', linestyle='--')
         plt.xlabel(xlabel)
         plt.ylabel("Residuals")
@@ -621,11 +643,17 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente",
     parametri = np.array([A, tau, f0])
     incertezze = np.array([A_unc, tau_unc, f0_unc])
 
-
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 #FIT PARABOLICO
 def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+    print("This fit returns a list which contains, in order:\n"
+        "- A numpy array with the parameters\n"
+        "- A numpy array with the uncertainties\n"
+        "- A numpy array with the residuals\n"
+        "- The chi squared\n"
+        "- The reduced chi squared \n")
+
     if sx is None or np.all(sx == 0):
         sx = np.zeros_like(x)
     if sy is None or np.all(sy == 0):
@@ -717,7 +745,7 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
         ax1 = fig.add_subplot(gs[2, 0])
         ax1.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
-                     fmt='*', color='black', label='Data', markersize=5, capsize=2)
+                     fmt='o', color='black', label='Data', markersize=3, capsize=2)
         ax1.plot(x_fit, parabola(x_fit, *params), color='red', label='Parabolic fit', lw=1.2)
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
@@ -726,7 +754,7 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
         ax1.grid(alpha=0.5)
 
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
-        ax2.scatter(x, residui, color='black', label='Residuals', s=10, marker='*')
+        ax2.errorbar(x, residui, color='black', label='Residuals', fmt='o', markersize=3, capsize=2)
         ax2.axhline(0, color='red', linestyle='--', lw=2)
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel("(data - fit)")
@@ -740,6 +768,13 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
 
 #Fit Lorentziana
 def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
+    print("This fit returns a list which contains, in order:\n"
+        "- A numpy array with the parameters\n"
+        "- A numpy array with the uncertainties\n"
+        "- A numpy array with the residuals\n"
+        "- The chi squared\n"
+        "- The reduced chi squared \n")
+
     # Gestione degli errori
     if sx is None or np.all(sx == 0):
         sx = np.zeros_like(x)
@@ -804,7 +839,7 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
                      fmt='o', color='black', label='Data',
                      markersize=3, capsize=2)
     else:
-        plt.scatter(x, y, color='black', label='Data', s=3)
+        plt.errorbar(x, y, color='black', label='Data', fmt='o', markersize=3, capsize=2)
     
     plt.plot(x, lorentzian(x, *params), color='red', label='Lorentzian fit', lw=2)
     plt.xlabel(xlabel)
@@ -820,9 +855,9 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
         plt.errorbar(x, residui, xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
                      fmt='o', color='blue', alpha=0.6, label='Residuals',
-                     markersize=4, capsize=2)
+                     markersize=3, capsize=2)
     else:
-        plt.scatter(x, residui, color='black', alpha=0.6, label='Residuals', s=10)
+        plt.erorrbar(x, residui, color='black', alpha=0.6, label='Residuals', fmt='o', markersize=3, capsize=2)
     plt.axhline(0, color='red', linestyle='--', lw=2)
     plt.xlabel(xlabel)
     plt.ylabel(f"(data - fit)")
@@ -838,6 +873,13 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
 
 #FIT BREIT-WIGNER
 def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+    print("This fit returns a list which contains, in order:\n"
+      "- A numpy array with the parameters\n"
+      "- A numpy array with the uncertainties\n"
+      "- A numpy array with the residuals\n"
+      "- The chi squared\n"
+      "- The reduced chi squared \n")
+
     if sx is None or np.all(sx == 0):
         sx = np.zeros_like(x)
     if sy is None or np.all(sy == 0):
@@ -930,7 +972,7 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
         ax1 = fig.add_subplot(gs[2, 0])
         ax1.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
-                     fmt='*', color='black', label='Data', markersize=5, capsize=2)
+                     fmt='o', color='black', label='Data', markersize=3, capsize=2)
         ax1.plot(x_fit, y_fit, color='red', label='Breit-Wigner fit', lw=1.5)
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
@@ -940,7 +982,7 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
 
         # Plot residui
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
-        ax2.scatter(x, residui, color='black', label='Residuals', s=10, marker='*')
+        ax2.errorbar(x, residui, color='black', label='Residuals', fmt='o', markersize=3, capsize=2)
         ax2.axhline(0, color='red', linestyle='--', lw=2)
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel("(data - fit)")
@@ -953,8 +995,16 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 #LOGNORMALE
-def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
-                  xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+    print("This fit returns a list which contains, in order:\n"
+      "- A numpy array with the parameters\n"
+      "- A numpy array with the uncertainties\n"
+      "- A numpy array with the residuals\n"
+      "- The chi squared\n"
+      "- The reduced chi squared \n"
+      "- The integral of the histogram in the range mu ± n*sigma\n"
+      "- The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing\n")
+
     if data is not None:
         bins = b if b is not None else int(np.sqrt(len(data)))
         counts, bin_edges = np.histogram(data, bins=bins, density=False)
@@ -980,7 +1030,7 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     params, cov_matrix = curve_fit(l_norm, bin_centers_fit, counts_fit, p0=initial_guess, sigma=sigma_counts_fit, absolute_sigma=True)
     amp, mu, sigma = params
     uncertainties = np.sqrt(np.diag(cov_matrix))
-    amp_uncertainty, mu_uncertainty, sigma_uncertainty = uncertainties
+    amp_unc, mu_unc, sigma_unc = uncertainties
 
     fit_values = l_norm(bin_centers_fit, *params)
     chi_squared = np.sum(((counts_fit - fit_values) / sigma_counts_fit) ** 2)
@@ -991,20 +1041,20 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
         lower_bound, upper_bound = np.exp(mu - n * sigma), np.exp(mu + n * sigma)
         bins_to_integrate = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)
         integral = int(np.sum(counts[bins_to_integrate]))
-        integral_uncertainty = int(np.sqrt(np.sum(sigma_counts[bins_to_integrate]**2)))
+        integral_unc = int(np.sqrt(np.sum(sigma_counts[bins_to_integrate]**2)))
     else:
-        integral, integral_uncertainty = None, None
+        integral, integral_unc = None, None
 
     x_fit = np.linspace(min(bin_centers), max(bin_centers), 10000)
     y_fit = l_norm(x_fit, *params)
 
-    print(f"Ampiezza = {amp} ± {amp_uncertainty}")
-    print(f"Media = {mu} ± {mu_uncertainty}")
-    print(f"Sigma = {sigma} ± {sigma_uncertainty}")
+    print(f"Ampiezza = {amp} ± {amp_unc}")
+    print(f"Media = {mu} ± {mu_unc}")
+    print(f"Sigma = {sigma} ± {sigma_unc}")
     print(f'Chi-squared = {chi_squared}')
     print(f'Reduced chi-squared = {chi_squared_reduced}')
     if integral is not None:
-        print(f"Conteggi entro {n}σ: {integral} ± {integral_uncertainty}")
+        print(f"Conteggi entro {n}σ: {integral} ± {integral_unc}")
 
     if plot:
         fig = plt.figure(figsize=(7, 8))
@@ -1015,14 +1065,14 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
         ax_table.axis('off')
 
         data_table = [
-            ["Ampiezza", f"{amp:.3f} ± {amp_uncertainty:.3f}"],
-            ["Media (μ)", f"{mu:.3f} ± {mu_uncertainty:.3f}"],
-            ["Sigma (σ)", f"{sigma:.3f} ± {sigma_uncertainty:.3f}"],
+            ["Ampiezza", f"{amp:.3f} ± {amp_unc:.3f}"],
+            ["Media (μ)", f"{mu:.3f} ± {mu_unc:.3f}"],
+            ["Sigma (σ)", f"{sigma:.3f} ± {sigma_unc:.3f}"],
             ["Chi²", f"{chi_squared:.8f}"],
             ["Chi² rid.", f"{chi_squared_reduced:.8f}"]
         ]
         if integral is not None:
-            data_table.append([f"Conteggi entro {n}σ", f"{integral} ± {integral_uncertainty}"])
+            data_table.append([f"Conteggi entro {n}σ", f"{integral} ± {integral_unc}"])
 
         table = ax_table.table(
             cellText=data_table,
@@ -1055,7 +1105,7 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
 
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
         residuals = counts_fit - l_norm(bin_centers_fit, *params)
-        ax2.scatter(bin_centers_fit, residuals, color='black', label='Residuals', s=10, marker='*')
+        ax2.errorbar(bin_centers_fit, residuals, color='black', label='Residuals', fmt='o', markersize=3, capsize=2)
         ax2.axhline(0, color='red', linestyle='--', lw=2)
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel("(data - fit)")
@@ -1065,7 +1115,7 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     parametri = np.array(params)
     incertezze = np.array(uncertainties)
 
-    return parametri, incertezze, chi_squared, chi_squared_reduced, [integral, integral_uncertainty], [x_fit, y_fit, bin_centers, counts]
+    return parametri, incertezze, chi_squared, chi_squared_reduced, [integral, integral_unc], [x_fit, y_fit, bin_centers, counts]
 
 # FIT DIAGRAMMA DI BODE
 def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)", titolo='Fit filtro', plot=False):
@@ -1148,7 +1198,7 @@ def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)"
 
         # Fit
         ax1 = fig.add_subplot(gs[2, 0])
-        ax1.scatter(frq, gain_dB, color='black', label='Dati', s=20, marker='*')
+        ax1.errorbar(frq, gain_dB, color='black', label='Dati', fmt='o', markersize=3, capsize=2)
         ax1.plot(frq_fit, fit_curve, color='red', label='Fit')
         ax1.set_xscale('log')
         ax1.set_xlabel(xlabel)
@@ -1159,7 +1209,7 @@ def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)"
 
         # Residui
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
-        ax2.scatter(frq, residui, color='black', s=20, label='Residui', marker='*')
+        ax2.errorbar(frq, residui, color='black', label='Residui', fmt='o', markersize=3, capsize=2)
         ax2.axhline(0, color='red', linestyle='--', lw=1)
         ax2.set_xlabel(xlabel)
         ax2.set_ylabel("Residui")
@@ -1167,8 +1217,10 @@ def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)"
         ax2.legend()
 
         plt.tight_layout()
-        plt.savefig("grafici/bode_fit.pdf")
         plt.show()
 
-    return popt, err, residui, chi2, chi2_red
+    parametri = np.array(popt)
+    incertezze = np.array(err)
+
+    return parametri, incertezze, residui, chi2, chi2_red
 '''ciao baby'''
