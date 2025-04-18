@@ -6,24 +6,25 @@
 #############################################################################################
 
 ##############################################################################################
-#       Questa libreria contiene alcune semplici funzioni per il fit di diversi modelli      # 
-#       utili per i laboratori del corso di laurea triennale in Fisica e per i primi         #
-#       laboratori del corso di laurea magistrale in Physics (almeno a Padova).              #
-#       Molte di queste funzioni sono state implementate per l'analisi dati di               #
-#       esperienze di spettroscopia ma possono essere usate anche per scopi analoghi.        #
-#       Le funzioni di fit presenti in questa libreria sono:                                 #
-#           - fit gaussiano                                                                  #
-#           - fit convoluzione gaussiana-esponenziale                                        #
-#           - fit per spalla Compton (con errorfunction)                                     # 
-#           - sottrazione background da uno spettro                                          #
-#           - fit lineare                                                                    #
-#           - fit esponenziale (crescente e decrescente)                                     #
-#           - fit parabolico                                                                 #
-#           - fit lorentziano                                                                #
-#           - fit Breit-Wigner                                                               #
-#           - fit lognormale                                                                #
-#           - fit diagramma di Bode (per filtri passa alto, passa basso e passa banda)       #
+#       This library contains some simple fitting functions for various models               #
+#       useful for laboratory courses in the Bachelor's degree in Physics                    #
+#       and for early lab work in the Master's degree in Physics (at least at Padua).        #
+#       Many of these functions were implemented for data analysis in spectroscopy           #
+#       experiments, but they can also be used for similar purposes.                         #
+#       The fitting functions included in this library are:                                  #
+#           - Gaussian fit                                                                   #
+#           - Gaussian-exponential convolution fit                                           #
+#           - Compton edge fit (based on the error function)                                 #
+#           - Background subtraction from a spectrum                                         #
+#           - Linear fit                                                                     #
+#           - Exponential fit (increasing and decreasing)                                    #
+#           - Parabolic fit                                                                  #
+#           - Lorentzian fit                                                                 #
+#           - Breit-Wigner fit                                                               #
+#           - Log-normal fit                                                                 #
+#           - Bode diagram fit (for low-pass, high-pass, and band-pass filters)              #
 ##############################################################################################
+
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -107,7 +108,7 @@ def chi2(model, params, x, y, sx=None, sy=None):
     return chi2_val
 
 #####################################################################################################################
-#####                                             FUNZIONI DI FIT:                                              #####
+#####                                              FIT FUNCTIONS:                                               #####
 #####################################################################################################################
 
 # NORMAL DISTRIBUTION
@@ -321,95 +322,121 @@ def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     return params, max_x, uncertainties, chi_quadro, reduced_chi_quadro, integral_results, plot_data
 
 #FIT COMPTON CON ERFC
-def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
+            xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
     print("This fit returns a list which contains, in order:\n"
-      "- A numpy array with the parameters\n"
-      "- A numpy array with the uncertainties\n"
-      "- A numpy array with the residuals\n"
-      "- The chi squared\n"
-      "- The reduced chi squared \n"
-      "- The integral of the histogram in the range mu ± n*sigma\n"
-      "- The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing\n")
-    
-    #Calcolo dei bin
+          "- A numpy array with the parameters\n"
+          "- A numpy array with the uncertainties\n"
+          "- A numpy array with the residuals\n"
+          "- The chi squared\n"
+          "- The reduced chi squared \n"
+          "- The integral of the histogram in the range mu ± n*sigma\n"
+          "- The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing\n")
+
     if data is not None:
-        # Calcolo bin
         if b is not None:
             bins = b
         else:
             bins = calculate_bins(data)
-
         counts, bin_edges = np.histogram(data, bins=bins, density=False)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     elif bin_centers is not None and counts is not None:
-        var_name = "custom_data"
         bin_edges = None
     else:
         raise ValueError("Devi fornire o `data`, o `bin_centers` e `counts`.")
 
-    sigma_counts = np.sqrt(counts)  # Errori sulle y
+    sigma_counts = np.sqrt(counts)
 
-    # Range per il fit
     if xmin is not None and xmax is not None:
-        fit_mask = (bin_centers >= xmin) & (bin_centers <= xmax)
-        bin_centers_fit = bin_centers[fit_mask]
-        counts_fit = counts[fit_mask]
-        sigma_counts_fit = sigma_counts[fit_mask]
+        mask = (bin_centers >= xmin) & (bin_centers <= xmax)
+        bin_centers_fit = bin_centers[mask]
+        counts_fit = counts[mask]
+        sigma_counts_fit = sigma_counts[mask]
     else:
         bin_centers_fit = bin_centers
         counts_fit = counts
         sigma_counts_fit = sigma_counts
 
-    # Funzione error function (erfc)
     def fit_function(x, mu, sigma, rate, bkg):
         return rate * erfc((x - mu) / sigma) + bkg
 
-    # Parametri iniziali per curve_fit
     initial_guess = [np.median(bin_centers_fit), 5, np.max(counts_fit), np.min(counts_fit)]
-    # initial_guess = [np.mean(bin_centers_fit), np.std(bin_centers_fit), np.max(counts_fit), np.min(counts_fit)]
-
-    # Esegui il fit
     params, cov_matrix = curve_fit(fit_function, bin_centers_fit, counts_fit, p0=initial_guess, sigma=sigma_counts_fit)
     mu, sigma, rate, bkg = params
     uncertainties = np.sqrt(np.diag(cov_matrix))
+    mu_unc, sigma_unc, rate_unc, bkg_unc = uncertainties
 
-    # Parametri ottimizzati
-    print("Parametri ottimizzati con curve_fit:")
-    print(f"mu = {mu} ± {uncertainties[0]}")
-    print(f"sigma = {sigma} ± {uncertainties[1]}")
-    print(f"rate = {rate} ± {uncertainties[2]}")
-    print(f"bkg = {bkg} ± {uncertainties[3]}")
+    fit_values = fit_function(bin_centers_fit, *params)
+    chi_quadro = np.sum(((counts_fit - fit_values) / sigma_counts_fit) ** 2)
+    dof = len(counts_fit) - len(params)
+    reduced_chi = chi_quadro / dof
+    residui = counts_fit - fit_values
 
-    # Generare il modello con i parametri ottimizzati
-    x_fit = np.linspace(xmin, xmax, 1000)
+    if n is not None:
+        lower_bound = mu - n * sigma
+        upper_bound = mu + n * sigma
+        integral_mask = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)
+        integral = int(np.sum(counts[integral_mask]))
+        integral_unc = int(np.sqrt(np.sum(sigma_counts[integral_mask]**2)))
+        print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral} ± {integral_unc}")
+    else:
+        integral, integral_unc = 0, 0
+
+    x_fit = np.linspace(xmin if xmin is not None else bin_centers[0],
+                        xmax if xmax is not None else bin_centers[-1], 1000)
     y_fit = fit_function(x_fit, *params)
 
-    # Calcolare l'integrale nell'intervallo mu ± n*sigma
-    lower_bound = mu - n * sigma
-    upper_bound = mu + n * sigma
-    bins_to_integrate = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)  # il return è un array booleano con true e false che poi si mette come maskera
-    integral = np.sum(counts[bins_to_integrate])
-    integral_uncertainty = np.sqrt(np.sum(sigma_counts[bins_to_integrate]**2))
-    print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral} ± {integral_uncertainty}")
-
-    # Plot dei dati e del fit
     if plot:
-        plt.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label="Data")
-        plt.plot(x_fit, y_fit, label='Error function fit', color='red', lw=2)
+        # Plot principale
+        plt.figure(figsize=(10, 6))
+        plt.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label='Data')
+        plt.plot(x_fit, y_fit, label='Fit con funzione erfc', color='red', lw=2)
         plt.xlabel(xlabel)
         plt.ylabel(ylabel)
         plt.title(titolo)
+        plt.grid(alpha=0.5)
         if x1 is not None and x2 is not None:
             plt.xlim(x1, x2)
-        # Impostare ylim in modo sensato
-        plt.ylim(0, np.max(counts)+1)
-        plt.grid(alpha=0.5)
+        else:
+            plt.xlim(mu - 3*sigma, mu + 3*sigma)
+        plt.ylim(0, np.max(counts)*1.1)
         plt.legend()
+
+        # Tabella dei parametri
+        cell_text = [
+            [f"{mu:.3f} ± {mu_unc:.3f}"],
+            [f"{sigma:.3f} ± {sigma_unc:.3f}"],
+            [f"{rate:.1f} ± {rate_unc:.1f}"],
+            [f"{bkg:.1f} ± {bkg_unc:.1f}"],
+            [f"{chi_quadro:.2f}"],
+            [f"{reduced_chi:.2f}"]
+        ]
+        row_labels = ["μ", "σ", "rate", "bkg", "χ²", "χ² ridotto"]
+        table = plt.table(cellText=cell_text, rowLabels=row_labels,
+                          loc='upper right', cellLoc='center')
+        table.scale(1.2, 1.5)
+        plt.tight_layout()
         plt.show()
 
-    int = [integral, integral_uncertainty]
+        # Plot dei residui
+        plt.figure(figsize=(8, 4))
+        plt.errorbar(bin_centers_fit, residui, yerr=sigma_counts_fit, fmt='o', label='Residui', capsize=2)
+        plt.axhline(0, color='black', linestyle='--', lw=1)
+        plt.xlabel(xlabel)
+        plt.ylabel('Residui (data - fit)')
+        plt.title("Residui del fit")
+        plt.grid(alpha=0.5)
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
 
-    return params, uncertainties, int
+    parametri = np.array([mu, sigma, rate, bkg])
+    incertezze = np.array([mu_unc, sigma_unc, rate_unc, bkg_unc])
+    ints = np.array([integral, integral_unc])
+    plot_data = np.array([x_fit, y_fit, bin_centers, counts])
+
+    return parametri, incertezze, residui, chi_quadro, reduced_chi, ints, plot_data
+
 
 #SOTTRAZIONE BACKGROUND
 def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo='Title'):
@@ -1227,4 +1254,3 @@ def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)"
     incertezze = np.array(err)
 
     return parametri, incertezze, residui, chi2, chi2_red
-'''ciao baby'''
