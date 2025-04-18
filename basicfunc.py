@@ -249,141 +249,6 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
 
     return parametri, incertezze, residui, chi_quadro, reduced_chi_quadro, integral, plot
 
-# GAUSS + EXPONENTIAL FIT
-def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
-              xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
-
-    if data is not None:
-        bins = b if b is not None else int(np.sqrt(len(data)))
-        counts, bin_edges = np.histogram(data, bins=bins, density=False)
-        bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
-    elif bin_centers is not None and counts is not None:
-        pass
-    else:
-        raise ValueError("Devi fornire o `data`, o `bin_centers` e `counts`.")
-    
-    sigma_counts = np.sqrt(counts)
-    
-    # Range per il fit
-    if xmin is not None and xmax is not None:
-        mask = (bin_centers >= xmin) & (bin_centers <= xmax)
-        bin_centers_fit = bin_centers[mask]
-        counts_fit = counts[mask]
-        sigma_counts_fit = sigma_counts[mask]
-    else:
-        bin_centers_fit = bin_centers
-        counts_fit = counts
-        sigma_counts_fit = sigma_counts
-
-    # Guess iniziali
-    A_guess = np.max(counts_fit)
-    mu_guess = bin_centers_fit[np.argmax(counts_fit)]
-    sigma_guess = np.std(bin_centers_fit)
-    tau_guess = sigma_guess  # stima iniziale ragionevole
-    p0 = [A_guess, mu_guess, sigma_guess, tau_guess]
-
-    # Fit
-    try:
-        params, cov = curve_fit(gauss_exp_conv, bin_centers_fit, counts_fit, sigma=sigma_counts_fit, p0=p0, absolute_sigma=True, maxfev=10000)
-    except RuntimeError:
-        print("⚠️ Fit fallito! Prova a cambiare il range o i guess iniziali.")
-        return None
-
-    amp, mu, sigma, tau = params
-    amp_unc, mu_unc, sigma_unc, tau_unc = np.sqrt(np.diag(cov))
-
-    # Calcolo massimo
-    result = minimize(lambda x: -gauss_exp_conv(x, *params), x0=mu)
-    max_x = result.x[0] if result.success else mu
-
-    # Fit y
-    fit_values = gauss_exp_conv(bin_centers_fit, *params)
-    chi2 = np.sum(((counts_fit - fit_values) / sigma_counts_fit) ** 2)
-    dof = len(counts_fit) - len(params)
-    chi2_red = chi2 / dof
-
-    residui = counts_fit - fit_values
-
-    # Integrale nell'intervallo
-    integral = integral_unc = None
-    if n is not None:
-        lower = mu - n * sigma
-        upper = mu + n * sigma
-        mask_integral = (bin_centers >= lower) & (bin_centers <= upper)
-        integral = int(np.sum(counts[mask_integral]))
-        integral_unc = int(np.sqrt(np.sum(sigma_counts[mask_integral] ** 2)))
-        print(f"Integrale nell'intervallo [{lower:.2f}, {upper:.2f}] = {integral} ± {integral_unc}")
-
-    # Dati del fit
-    x_fit = np.linspace(xmin if xmin is not None else bin_centers[0],
-                        xmax if xmax is not None else bin_centers[-1], 10000)
-    y_fit = gauss_exp_conv(x_fit, *params)
-
-    # ------------------------ PLOT ------------------------
-    if plot:
-        fig = plt.figure(figsize=(8, ))
-        gs = fig.add_gridspec(5, 1, height_ratios=[2, 0.6, 5, 0.6, 1])
-
-        ax_table = fig.add_subplot(gs[:2, 0])
-        ax_table.axis('tight')
-        ax_table.axis('off')
-
-        data_table = [
-            ["A", f"{amp:.3f} ± {amp_unc:.3f}"],
-            ["μ", f"{mu:.3f} ± {mu_unc:.3f}"],
-            ["σ", f"{sigma:.3f} ± {sigma_unc:.3f}"],
-            ["τ", f"{tau:.3f} ± {tau_unc:.3f}"],
-            ["Chi²", f"{chi2:.8f}"],
-            ["Chi² rid.", f"{chi2_red:.8f}"]
-        ]
-
-        table = ax_table.table(
-            cellText=data_table,
-            colLabels=["Parametro", "Valore"],
-            loc='center',
-            cellLoc='center',
-            colColours=["#4CAF50", "#4CAF50"],
-            bbox=[0, 0, 1, 1]
-        )
-        table.auto_set_font_size(False)
-        table.set_fontsize(10)
-        table.auto_set_column_width(col=list(range(len(data_table[0]))))
-
-        for (row, col), cell in table.get_celld().items():
-            cell.set_edgecolor("black")
-            cell.set_linewidth(1.5)
-            if row == 0:
-                cell.set_text_props(weight='bold', color='black')
-                cell.set_facecolor("lightblue")
-
-        ax1 = fig.add_subplot(gs[2, 0])
-        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label="Data", color='black')
-        ax1.plot(x_fit, y_fit, color='red', label='Gauss-Exp fit', lw=1.5)
-        ax1.set_xlabel(xlabel)
-        ax1.set_ylabel(ylabel)
-        ax1.set_title(titolo)
-        ax1.set_xlim(x1 if x1 is not None else mu - 3 * sigma,
-                     x2 if x2 is not None else mu + 3 * sigma)
-        ax1.set_ylim(0, np.max(y_fit) * 1.1)
-        ax1.grid(alpha=0.5)
-        ax1.legend()
-
-        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
-        residuals = counts - gauss_exp_conv(bin_centers, *params)
-        ax2.bar(bin_centers, residuals, width=(bin_centers[1] - bin_centers[0]), color='gray', alpha=0.7)
-        ax2.axhline(0, color='red', linestyle='--', lw=2)
-        ax2.set_ylabel("Residui")
-        ax2.set_xlabel(xlabel)
-        ax2.grid(alpha=0.5)
-
-    # OUTPUT
-    plot_data = [x_fit, y_fit, bin_centers, counts]
-    integral_data = [integral, integral_unc] if integral is not None else None
-    parametri = np.array([amp, mu, sigma, tau])
-    incertezze = np.array([amp_unc, mu_unc, sigma_unc, tau_unc])
-
-    return parametri, max_x, incertezze, chi2, chi2_red, integral_data, plot_data
-
 # COMPTON EDGE FIT via erfc
 def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
             xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
@@ -670,6 +535,9 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
         ax2.grid(alpha=0.5)
         ax2.legend()
 
+        plt.tight_layout()
+        plt.show()
+
     parametri = np.array([m, q])
     incertezze = np.array([m_unc, q_unc])
 
@@ -917,7 +785,7 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 # LORENTZIAN FIT
-def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
+def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
     print("This fit returns a list which contains, in order:\n"
         "- A numpy array with the parameters\n"
         "- A numpy array with the uncertainties\n"
@@ -951,18 +819,16 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     # Fitting Lorentziano
     initial_guess = [1, 1, np.mean(x)]
     if fit_with_weights:
-        params, cov_matrix = curve_fit(
-            lorentzian, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True
-        )
+        params, cov_matrix = curve_fit(lorentz, x, y, p0=initial_guess, sigma=sigma_weights, absolute_sigma=True)
     else:
-        params, cov_matrix = curve_fit(lorentzian, x, y, p0=initial_guess)
+        params, cov_matrix = curve_fit(lorentz, x, y, p0=initial_guess)
 
     a, gamma, x0 = params
     uncertainties = np.sqrt(np.diag(cov_matrix))
     a_unc, gamma_unc, x0_unc = uncertainties
 
     # Calcolo dei residui
-    residui = y - lorentzian(x, *params)
+    residui = y - lorentz(x, *params)
 
     # Calcolo del chi quadro
     if fit_with_weights:
@@ -981,40 +847,71 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis"):
     print(f"Chi-squared = {chi_squared}")
     print(f"Reduced Chi-squared = {chi_squared_reduced}")
 
-    # Plot dei dati e del fit
-    plt.figure(figsize=(6.4, 4.8))
-    if fit_with_weights:
-        plt.errorbar(x, y, xerr=sx if np.any(sx != 0) else None,
-                     yerr=sy if np.any(sy != 0) else None,
-                     fmt='o', color='black', label='Data',
-                     markersize=3, capsize=2)
-    else:
-        plt.errorbar(x, y, color='black', label='Data', fmt='o', markersize=3, capsize=2)
-    
-    plt.plot(x, lorentzian(x, *params), color='red', label='Lorentzian fit', lw=2)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title("Lorentzian Fit")
-    plt.grid(alpha=0.5)
-    plt.legend()
-    plt.show()
+    if plot:
+        x_fit = np.linspace(np.min(x), np.max(x), 1000)
+        y_fit = lorentz(x_fit, *params)
 
-    # Plot dei residui
-    plt.figure(figsize=(6.4, 4.8))
-    if fit_with_weights:
-        plt.errorbar(x, residui, xerr=sx if np.any(sx != 0) else None,
+        fig = plt.figure(figsize=(7, 8))
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
+
+        # Tabella
+        ax_table = fig.add_subplot(gs[:2, 0])
+        ax_table.axis('tight')
+        ax_table.axis('off')
+
+        data = [
+            ["A", f"{a:.3f} ± {a_unc:.3f}"],
+            ["γ", f"{gamma:.3f} ± {gamma_unc:.3f}"],
+            ["x₀", f"{x0:.3f} ± {x0_unc:.3f}"],
+            ["Chi²", f"{chi_squared:.8f}"],
+            ["Chi² rid.", f"{chi_squared_reduced:.8f}"]
+        ]
+
+        table = ax_table.table(
+            cellText=data,
+            colLabels=["Parametro", "Valore"],
+            loc='center',
+            cellLoc='center',
+            colColours=["#4CAF50", "#4CAF50"],
+            bbox=[0, 0, 1, 1]
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(len(data[0]))))
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor("black")
+            cell.set_linewidth(1.5)
+            if row == 0:
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_facecolor("lightblue")
+
+        # Fit
+        ax1 = fig.add_subplot(gs[2, 0])
+        ax1.errorbar(x, y,
+                     xerr=sx if np.any(sx != 0) else None,
                      yerr=sy if np.any(sy != 0) else None,
-                     fmt='o', color='blue', alpha=0.6, label='Residuals',
-                     markersize=3, capsize=2)
-    else:
-        plt.erorrbar(x, residui, color='black', alpha=0.6, label='Residuals', fmt='o', markersize=3, capsize=2)
-    plt.axhline(0, color='red', linestyle='--', lw=2)
-    plt.xlabel(xlabel)
-    plt.ylabel(f"(data - fit)")
-    plt.title("Residuals")
-    plt.grid(alpha=0.5)
-    plt.legend()
-    plt.show()
+                     fmt='o', color='black', label='Data', markersize=3, capsize=2)
+        ax1.plot(x_fit, y_fit, color='red', label='Lorentzian fit', lw=1.5)
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel(ylabel)
+        ax1.set_title(titolo)
+        ax1.legend()
+        ax1.grid(alpha=0.5)
+
+        # Residui
+        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
+        ax2.errorbar(x, residui,
+                     xerr=sx if np.any(sx != 0) else None,
+                     yerr=sy if np.any(sy != 0) else None,
+                     fmt='o', color='black', markersize=3, capsize=2, label='Residuals')
+        ax2.axhline(0, color='red', linestyle='--', lw=2)
+        ax2.set_xlabel(xlabel)
+        ax2.set_ylabel("(data - fit)")
+        ax2.legend()
+        ax2.grid(alpha=0.5)
+
+        plt.tight_layout()
+        plt.show()
 
     parametri = np.array([a, gamma, x0])
     incertezze = np.array([a_unc, gamma_unc, x0_unc])
@@ -1083,7 +980,7 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     y_fit = wigner(x_fit, *params)
 
     if plot:
-        fig = plt.figure(figsize=(8, 9))
+        fig = plt.figure(figsize=(7, 8))
         gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
 
         # Tabella con parametri
