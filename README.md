@@ -2,7 +2,18 @@ Basic Physics Analysis
 
 SHORT DESCRIPTION: little python library for the data analysis of simple university experiments. 
 
-It is so far provided with linear regression, gaussian fitting and background subtraction (for example of background spectra from emission spectra).
+It is so far provided with 
+  - gaussian fitting,
+  - gaussian and exponential convolution fitting
+  - background subtraction (for example of background spectra from emission spectra)
+  - Compton edge fitting (with an errorfunction)
+  - linear fitting
+  - exponential fitting
+  - parabolic fitting
+  - Lorentzian fitting
+  - Breit-Wigner fitting
+  - lognormal fitting
+  - Bode diagram fitting.
 
 It is given as a .py file and once imported (import basic_physics_analysis as bpa, for example) it can be used in your code for the analysis.
 
