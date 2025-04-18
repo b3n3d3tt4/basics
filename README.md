@@ -2,6 +2,8 @@ Basic Physics Analysis library
 
 SHORT DESCRIPTION: little python library for the data analysis of simple university experiments. 
 
+WARNING: So far some comments are still in Italian, sooner or later I will translate them to English
+
 It is so far provided with 
   - gaussian fitting,
   - gaussian and exponential convolution fitting
