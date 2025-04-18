@@ -22,7 +22,7 @@ If you want to use the linear regression function your code will be:
 
   bpa.linear_regression(datax, datay, errorx, errory, 'xlabel', 'ylabel')
   
-  IMPORTANT: if you don't specify any errorx or errory they will not be taken into consideration while if you specify just one of them this will be taken into account but the other one no.
+  IMPORTANT: if you don't specify any errorx or errory they will not be taken into consideration while if you specify just one of them this will be taken into account but the other one will not.
   
   it will return you:
   
