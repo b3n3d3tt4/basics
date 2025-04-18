@@ -128,7 +128,6 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
       "- The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing\n")
     
     if data is not None:
-        # Calcolo bin
         if b is not None:
             bins = b
         else:
@@ -137,14 +136,12 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
         counts, bin_edges = np.histogram(data, bins=bins, density=False)
         bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
     elif bin_centers is not None and counts is not None:
-        var_name = "custom_data"
-        bin_edges = None  # Non usiamo bin_edges
+        bin_edges = None
     else:
         raise ValueError("Devi fornire o `data`, o `bin_centers` e `counts`.")
 
-    sigma_counts = np.sqrt(counts)  # Errori sulle y
+    sigma_counts = np.sqrt(counts)
 
-    # Range per il fit
     if xmin is not None and xmax is not None:
         fit_mask = (bin_centers >= xmin) & (bin_centers <= xmax)
         bin_centers_fit = bin_centers[fit_mask]
@@ -155,41 +152,27 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
         counts_fit = counts
         sigma_counts_fit = sigma_counts
 
-    # Fit gaussiano
     initial_guess = [max(counts_fit), np.mean(bin_centers_fit), np.std(bin_centers_fit)]
     params, cov_matrix = curve_fit(gaussian, bin_centers_fit, counts_fit, p0=initial_guess)
     amp, mu, sigma = params
     uncertainties = np.sqrt(np.diag(cov_matrix))
     amp_unc, mu_unc, sigma_unc = uncertainties
 
-    # Stampa a schermo dei parametri ottimizzati
-    print(f"Parametri ottimizzati:")
-    print(f'-----------------------------------------------')
-    print(f"Ampiezza = {amp} ± {amp_unc}")
-    print(f"Media = {mu} ± {mu_unc}")
-    print(f"Sigma = {sigma} ± {sigma_unc}")
-
-    # Calcolo del chi-quadro
     fit_values = gaussian(bin_centers_fit, *params)
     chi_quadro = np.sum(((counts_fit - fit_values) / sigma_counts_fit) ** 2)
     degrees_of_freedom = len(counts_fit) - len(params)
     reduced_chi_quadro = chi_quadro / degrees_of_freedom
-    print(f"Chi-quadro = {chi_quadro}")
-    print(f"Chi-quadro ridotto = {reduced_chi_quadro}")
 
-    # Calcolo dei residui
     residui = res(counts_fit, fit_values)
 
-    # Calcolo dell'integrale dell'istogramma nel range media ± n*sigma
     if n is not None:
         lower_bound = mu - n * sigma
         upper_bound = mu + n * sigma
-        bins_to_integrate = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)  # il return è un array booleano con true e false che poi si mette come maskera
+        bins_to_integrate = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)
         integral = int(np.sum(counts[bins_to_integrate]))
         integral_unc = int(np.sqrt(np.sum(sigma_counts[bins_to_integrate]**2)))
         print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral} ± {integral_unc}")
 
-    # Creiamo i dati della Gaussiana sul range X definito
     if xmin is not None and xmax is not None:
         x_fit = np.linspace(xmin, xmax, 10000)
     else:
@@ -197,42 +180,74 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
     y_fit = gaussian(x_fit, *params)
 
     if plot:
-        # Plot dell'istogramma e del fit
-        plt.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label="Data")
-        plt.plot(x_fit, y_fit, color='red', label='Gaussian fit', lw=1.5)
-        plt.ylim(0, np.max(y_fit) * 1.1)  # Adattiamo il limite Y per il range X specificato
-        if x1 is not None and x2 is not None:  # limiti asse x
-            plt.xlim(x1, x2)
+        fig = plt.figure(figsize=(7, 8))
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
+
+        # --------------------- TABELLA ---------------------
+        ax_table = fig.add_subplot(gs[:2, 0])
+        ax_table.axis('tight')
+        ax_table.axis('off')
+
+        data = [
+            ["Amp", f"{amp:.3f} ± {amp_unc:.3f}"],
+            ["μ", f"{mu:.3f} ± {mu_unc:.3f}"],
+            ["σ", f"{sigma:.3f} ± {sigma_unc:.3f}"],
+            ["Chi²", f"{chi_quadro:.8f}"],
+            ["Chi² rid.", f"{reduced_chi_quadro:.8f}"]
+        ]
+
+        table = ax_table.table(
+            cellText=data,
+            colLabels=["Parametro", "Valore"],
+            loc='center',
+            cellLoc='center',
+            colColours=["#4CAF50", "#4CAF50"],
+            bbox=[0, 0, 1, 1]
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(len(data[0]))))
+
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor("black")
+            cell.set_linewidth(1.5)
+            if row == 0:
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_facecolor("lightblue")
+
+        # --------------------- FIT PRINCIPALE ---------------------
+        ax1 = fig.add_subplot(gs[2, 0])
+        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), label='Data', color='black', alpha=0.6)
+        ax1.plot(x_fit, y_fit, color='red', label='Gaussian fit', lw=1.5)
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel(ylabel)
+        ax1.set_title(titolo)
+        ax1.legend()
+        ax1.grid(alpha=0.5)
+        if x1 is not None and x2 is not None:
+            ax1.set_xlim(x1, x2)
         else:
-            plt.xlim(mu - 3 * sigma, mu + 3 * sigma)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.title(titolo)
-        plt.grid(alpha=0.5)
-        plt.legend()
+            ax1.set_xlim(mu - 3 * sigma, mu + 3 * sigma)
+        ax1.set_ylim(0, np.max(counts) * 1.1)
+
+        # --------------------- RESIDUI ---------------------
+        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
+        ax2.errorbar(bin_centers_fit, residui, yerr=sigma_counts_fit, fmt='o', color='black', markersize=3, capsize=2, label='Residuals')
+        ax2.axhline(0, color='red', linestyle='--', lw=2)
+        ax2.set_xlabel(xlabel)
+        ax2.set_ylabel("(data - fit)")
+        ax2.grid(alpha=0.5)
+        ax2.legend()
+
+        plt.tight_layout()
         plt.show()
 
-        # Plot dei residui
-        plt.errorbar(bin_centers_fit, residui, yerr=sigma_counts_fit, alpha=0.6, label="Residuals", fmt='o', markersize=3, capsize=2)
-        plt.axhline(0, color='black', linestyle='--', lw=2)
-        if xmin is not None and xmax is not None:
-            plt.xlim(xmin, xmax)
-        else:
-            plt.xlim(mu - 5 * sigma, mu + 5 * sigma)
-        plt.xlabel(xlabel)
-        plt.ylabel("(data - fit)")
-        plt.title('Residuals')
-        plt.grid(alpha=0.5)
-        plt.legend()
-        plt.show()
-
-    plot = np.array([x_fit, y_fit, bin_centers, counts])
-    ints = np.array([integral, integral_unc])
+    plot = [x_fit, y_fit, bin_centers, counts]
 
     parametri = np.array([amp, mu, sigma])
     incertezze = np.array([amp_unc, mu_unc, sigma_unc])
 
-    return parametri, incertezze, residui, chi_quadro, reduced_chi_quadro, ints, plot
+    return parametri, incertezze, residui, chi_quadro, reduced_chi_quadro, integral, plot
 
 # GAUSS + EXPONENTIAL FIT
 def gauss_exp(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
@@ -392,53 +407,73 @@ def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y
     y_fit = fit_function(x_fit, *params)
 
     if plot:
-        # Plot principale
-        plt.figure(figsize=(10, 6))
-        plt.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label='Data')
-        plt.plot(x_fit, y_fit, label='Fit con funzione erfc', color='red', lw=2)
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.title(titolo)
-        plt.grid(alpha=0.5)
-        if x1 is not None and x2 is not None:
-            plt.xlim(x1, x2)
-        else:
-            plt.xlim(mu - 3*sigma, mu + 3*sigma)
-        plt.ylim(0, np.max(counts)*1.1)
-        plt.legend()
+        fig = plt.figure(figsize=(7, 8))
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
 
-        # Tabella dei parametri
-        cell_text = [
-            [f"{mu:.3f} ± {mu_unc:.3f}"],
-            [f"{sigma:.3f} ± {sigma_unc:.3f}"],
-            [f"{rate:.1f} ± {rate_unc:.1f}"],
-            [f"{bkg:.1f} ± {bkg_unc:.1f}"],
-            [f"{chi_quadro:.2f}"],
-            [f"{reduced_chi:.2f}"]
+        # --------------------- TABELLA ---------------------
+        ax_table = fig.add_subplot(gs[:2, 0])
+        ax_table.axis('tight')
+        ax_table.axis('off')
+
+        data = [
+            ["μ", f"{mu:.3f} ± {mu_unc:.3f}"],
+            ["σ", f"{sigma:.3f} ± {sigma_unc:.3f}"],
+            ["rate", f"{rate:.1f} ± {rate_unc:.1f}"],
+            ["bkg", f"{bkg:.1f} ± {bkg_unc:.1f}"],
+            ["Chi²", f"{chi_quadro:.8f}"],
+            ["Chi² rid.", f"{reduced_chi:.8f}"]
         ]
-        row_labels = ["μ", "σ", "rate", "bkg", "χ²", "χ² ridotto"]
-        table = plt.table(cellText=cell_text, rowLabels=row_labels,
-                          loc='upper right', cellLoc='center')
-        table.scale(1.2, 1.5)
-        plt.tight_layout()
-        plt.show()
 
-        # Plot dei residui
-        plt.figure(figsize=(8, 4))
-        plt.errorbar(bin_centers_fit, residui, yerr=sigma_counts_fit, fmt='o', label='Residui', capsize=2)
-        plt.axhline(0, color='black', linestyle='--', lw=1)
-        plt.xlabel(xlabel)
-        plt.ylabel('Residui (data - fit)')
-        plt.title("Residui del fit")
-        plt.grid(alpha=0.5)
-        plt.legend()
+        table = ax_table.table(
+            cellText=data,
+            colLabels=["Parametro", "Valore"],
+            loc='center',
+            cellLoc='center',
+            colColours=["#4CAF50", "#4CAF50"],
+            bbox=[0, 0, 1, 1]
+        )
+        table.auto_set_font_size(False)
+        table.set_fontsize(10)
+        table.auto_set_column_width(col=list(range(len(data[0]))))
+
+        for (row, col), cell in table.get_celld().items():
+            cell.set_edgecolor("black")
+            cell.set_linewidth(1.5)
+            if row == 0:
+                cell.set_text_props(weight='bold', color='black')
+                cell.set_facecolor("lightblue")
+
+        # --------------------- FIT PRINCIPALE ---------------------
+        ax1 = fig.add_subplot(gs[2, 0])
+        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label='Data', color='black')
+        ax1.plot(x_fit, y_fit, color='red', label='Fit con funzione erfc', lw=1.5)
+        ax1.set_xlabel(xlabel)
+        ax1.set_ylabel(ylabel)
+        ax1.set_title(titolo)
+        ax1.legend()
+        ax1.grid(alpha=0.5)
+        if x1 is not None and x2 is not None:
+            ax1.set_xlim(x1, x2)
+        else:
+            ax1.set_xlim(mu - 3*sigma, mu + 3*sigma)
+        ax1.set_ylim(0, np.max(counts) * 1.1)
+
+        # --------------------- RESIDUI ---------------------
+        ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
+        ax2.errorbar(bin_centers_fit, residui, yerr=sigma_counts_fit, fmt='o', color='black', markersize=3, capsize=2, label='Residuals')
+        ax2.axhline(0, color='red', linestyle='--', lw=2)
+        ax2.set_xlabel(xlabel)
+        ax2.set_ylabel("(data - fit)")
+        ax2.grid(alpha=0.5)
+        ax2.legend()
+
         plt.tight_layout()
         plt.show()
 
     parametri = np.array([mu, sigma, rate, bkg])
     incertezze = np.array([mu_unc, sigma_unc, rate_unc, bkg_unc])
     ints = np.array([integral, integral_unc])
-    plot_data = np.array([x_fit, y_fit, bin_centers, counts])
+    plot_data = [x_fit, y_fit, bin_centers, counts]
 
     return parametri, incertezze, residui, chi_quadro, reduced_chi, ints, plot_data
 
@@ -541,7 +576,7 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
 
     if plot:
         fig = plt.figure(figsize=(7, 8))
-        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.5, 5, 0.5, 1])
+        gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
 
         ax_table = fig.add_subplot(gs[:2, 0])
         ax_table.axis('tight')
@@ -1278,7 +1313,7 @@ def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=N
         ax1.grid(alpha=0.5)
         ax1.legend()
 
-        # Residui
+        # Residuals
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
         ax2.errorbar(frq, residui, color='black', label='Residui', fmt='o', markersize=3, capsize=2)
         ax2.axhline(0, color='red', linestyle='--', lw=1)
