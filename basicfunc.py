@@ -1153,13 +1153,29 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     return parametri, incertezze, chi_squared, chi_squared_reduced, [integral, integral_unc], [x_fit, y_fit, bin_centers, counts]
 
 # BODE DIAGRAM FIT
-def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)", titolo='Fit filtro', plot=False):
-    # Lettura dati da file
-    dati = np.loadtxt(filename)
-    frq, vin, vout = dati[:, 0], dati[:, 1], dati[:, 2]
+def bode(f=None, in_=None, out_=None, sf=None, sin=None, sout=None, filename=None, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)", titolo='Fit filtro', plot=False):
+
+    # Lettura dati
+    if filename is not None:
+        dati = np.loadtxt(filename)
+        frq, vin, vout = dati[:, 0], dati[:, 1], dati[:, 2]
+    elif f is not None and in_ is not None and out_ is not None:
+        frq, vin, vout = np.array(f), np.array(in_), np.array(out_)
+    else:
+        raise ValueError("Fornire o un filename oppure i vettori f, in_ e out_")
 
     # Calcolo guadagno in dB
     gain_dB = 20 * np.log10(vout / vin)
+    if sin is None or np.all(sin == 0):
+        sin = np.zeros_like(vin)
+    if sout is None or np.all(sout == 0):
+        sout = np.zeros_like(vout)
+    if np.any(sin != 0) or np.any(sout != 0):
+        sigma_gain_dB = (20 / np.log(10)) * np.sqrt(((vout / vin) * sin)**2 + ((vout * vin) * sout)**2)
+        fit_with_weights = True
+    else:
+        sigma_gain_dB = None
+        fit_with_weights = False
 
     # Definizione modelli
     def low_pass(f, f_cut):
@@ -1184,18 +1200,29 @@ def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)"
     else:
         raise ValueError("Tipo di filtro non valido. Usa 'basso', 'alto' o 'banda'.")
 
-    # Fit
-    popt, pcov = curve_fit(model, frq, gain_dB, p0=guess)
+    # Fit con o senza pesi
+    if fit_with_weights:
+        popt, pcov = curve_fit(model, frq, gain_dB, p0=guess,
+                               sigma=sigma_gain_dB, absolute_sigma=True)
+    else:
+        popt, pcov = curve_fit(model, frq, gain_dB, p0=guess)
+
     err = np.sqrt(np.diag(pcov))
 
     # Calcolo residui e chi^2
     fit_vals = model(frq, *popt)
     residui = gain_dB - fit_vals
-    chi2 = np.sum(residui**2 / np.var(gain_dB))
+
+    if fit_with_weights:
+        chi2 = np.sum((residui / sigma_gain_dB)**2)
+    else:
+        chi2 = np.sum(residui**2 / np.var(gain_dB))
+
     chi2_red = chi2 / (len(frq) - len(popt))
 
     # Stampa risultati
-    print(f"f_cut: {popt[0]:.3f} ± {err[0]:.3f}")
+    print(f"Parametri: {popt}")
+    print(f"Incertezze: {err}")
     print(f"Chi² = {chi2:.4f}")
     print(f"Chi² ridotto = {chi2_red:.4f}")
 
@@ -1211,8 +1238,17 @@ def bode(filename, tipo='basso', xlabel="Frequenza (Hz)", ylabel="Guadagno (dB)"
         ax_table = fig.add_subplot(gs[:2, 0])
         ax_table.axis('tight')
         ax_table.axis('off')
-        table_data = [['f_cut', f"{popt[0]:.3f} ± {err[0]:.3f}"]]
+
+        table_data = []
+        if tipo == 'banda':
+            labels = ['f₀', 'Γ', 'A']
+        else:
+            labels = ['f_cut']
+
+        for i, (label, val, e) in enumerate(zip(labels, popt, err)):
+            table_data.append([label, f"{val:.3f} ± {e:.3f}"])
         table_data += [["Chi²", f"{chi2:.4f}"], ["Chi² rid.", f"{chi2_red:.4f}"]]
+
         table = ax_table.table(
             cellText=table_data,
             colLabels=["Parametro", "Valore"],
