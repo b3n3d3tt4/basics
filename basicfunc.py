@@ -188,7 +188,7 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
         ax_table.axis('off')
 
         data = [
-            ["Amp", f"{amp:.3f} ± {amp_unc:.3f}"],
+            ["Amplitude", f"{amp:.3f} ± {amp_unc:.3f}"],
             ["μ", f"{mu:.3f} ± {mu_unc:.3f}"],
             ["σ", f"{sigma:.3f} ± {sigma_unc:.3f}"],
             ["Chi²", f"{chi_quadro:.8f}"],
@@ -305,7 +305,7 @@ def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y
         integral_mask = (bin_centers >= lower_bound) & (bin_centers <= upper_bound)
         integral = int(np.sum(counts[integral_mask]))
         integral_unc = int(np.sqrt(np.sum(sigma_counts[integral_mask]**2)))
-        print(f"Integrale dell'istogramma nel range [{lower_bound}, {upper_bound}] = {integral} ± {integral_unc}")
+        print(f"Integral within [{lower_bound}, {upper_bound}] = {integral} ± {integral_unc}")
     else:
         integral, integral_unc = 0, 0
 
@@ -353,7 +353,7 @@ def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y
         # --------------------- FIT PRINCIPALE ---------------------
         ax1 = fig.add_subplot(gs[2, 0])
         ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label='Data')
-        ax1.plot(x_fit, y_fit, color='red', label='Fit con funzione erfc', lw=1.5)
+        ax1.plot(x_fit, y_fit, color='red', label='Fit via error function', lw=1.5)
         ax1.set_xlabel(xlabel)
         ax1.set_ylabel(ylabel)
         ax1.set_title(titolo)
@@ -474,6 +474,8 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
     dof = len(x) - len(params)
     chi_squared_reduced = chi_squared / dof
 
+    print("Optimised parameters")
+    print("-----------------------------------------------")
     print(f"m = {m} ± {m_unc}")
     print(f"q = {q} ± {q_unc}")
     print(f'Chi-squared = {chi_squared}')
@@ -543,7 +545,7 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 # EXPONENTIAL FIT
-def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+def exponential(x, y, sx=None, sy=None, tipo="falling", xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
       "- A numpy array with the uncertainties\n"
@@ -551,12 +553,12 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", yla
       "- The chi squared\n"
       "- The reduced chi squared \n")
     
-    if tipo == "crescente":
+    if tipo == "rising":
         fit_func = exp_pos
-    elif tipo == "decrescente":
+    elif tipo == "falling":
         fit_func = exp_neg
     else:
-        raise ValueError("Tipo deve essere 'crescente' o 'decrescente'.")
+        raise ValueError("Tipo must be either 'rising' or 'falling'.")
 
     if sx is None:
         sx = np.zeros_like(x)
@@ -589,7 +591,8 @@ def exponential(x, y, sx=None, sy=None, tipo="decrescente", xlabel="X-axis", yla
     dof = len(x) - 3
     chi_squared_reduced = chi_squared / dof if dof > 0 else 0
 
-    print("Parametri ottimizzati:")
+    print("Optimised parameters")
+    print("-----------------------------------------------")
     print(f"A = {A} ± {A_unc}")
     print(f"tau = {tau} ± {tau_unc}")
     print(f"f0 = {f0} ± {f0_unc}")
@@ -716,6 +719,8 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
     dof = len(x) - len(params)
     chi_squared_reduced = chi_squared / dof
 
+    print("Optimised parameters")
+    print("-----------------------------------------------")
     print(f"a = {a} ± {a_unc}")
     print(f"b = {b} ± {b_unc}")
     print(f"c = {c} ± {c_unc}")
@@ -838,7 +843,7 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo=
     chi_squared_reduced = chi_squared / dof
 
     # Stampa dei risultati
-    print(f"Parametri ottimizzati:")
+    print(f"Optimised parameters")
     print(f"-----------------------------------------------")
     print(f"A = {a} ± {a_unc}")
     print(f"gamma = {gamma} ± {gamma_unc}")
@@ -967,7 +972,7 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     dof = len(x) - len(params)
     chi_squared_reduced = chi_squared / dof
 
-    print("Parametri ottimizzati:")
+    print("Optimised parameters")
     print("-----------------------------------------------")
     print(f"a = {a} ± {a_unc}")
     print(f"gamma = {gamma} ± {gamma_unc}")
@@ -1097,13 +1102,16 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
     x_fit = np.linspace(min(bin_centers), max(bin_centers), 10000)
     y_fit = l_norm(x_fit, *params)
 
-    print(f"Ampiezza = {amp} ± {amp_unc}")
-    print(f"Media = {mu} ± {mu_unc}")
+    print("Optimised parameters")
+    print("-----------------------------------------------")
+    print(f"Amplitude = {amp} ± {amp_unc}")
+    print(f"Mean = {mu} ± {mu_unc}")
     print(f"Sigma = {sigma} ± {sigma_unc}")
     print(f'Chi-squared = {chi_squared}')
     print(f'Reduced chi-squared = {chi_squared_reduced}')
+
     if integral is not None:
-        print(f"Conteggi entro {n}σ: {integral} ± {integral_unc}")
+        print(f"Integral within {n}σ: {integral} ± {integral_unc}")
 
     if plot:
         fig = plt.figure(figsize=(7, 8))
@@ -1114,14 +1122,14 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
         ax_table.axis('off')
 
         data_table = [
-            ["Ampiezza", f"{amp:.3f} ± {amp_unc:.3f}"],
-            ["Media (μ)", f"{mu:.3f} ± {mu_unc:.3f}"],
+            ["Amplitude", f"{amp:.3f} ± {amp_unc:.3f}"],
+            ["Mean (μ)", f"{mu:.3f} ± {mu_unc:.3f}"],
             ["Sigma (σ)", f"{sigma:.3f} ± {sigma_unc:.3f}"],
             ["Chi²", f"{chi_squared:.8f}"],
             ["Chi² rid.", f"{chi_squared_reduced:.8f}"]
         ]
         if integral is not None:
-            data_table.append([f"Conteggi entro {n}σ", f"{integral} ± {integral_unc}"])
+            data_table.append([f"Integral within {n}σ", f"{integral} ± {integral_unc}"])
 
         table = ax_table.table(
             cellText=data_table,
@@ -1143,7 +1151,7 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
                 cell.set_facecolor("lightblue")
 
         ax1 = fig.add_subplot(gs[2, 0])
-        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label="Data", color="gray", edgecolor='black')
+        ax1.bar(bin_centers, counts, width=(bin_centers[1] - bin_centers[0]), alpha=0.6, label="Data")
         ax1.plot(x_fit, y_fit, color='red', label='Lognormal fit', lw=1.5)
         ax1.set_xlim(x1, x2) if x1 is not None and x2 is not None else ax1.set_xlim(min(bin_centers), max(bin_centers))
         ax1.set_xlabel(xlabel)
@@ -1161,84 +1169,94 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
         ax2.grid(alpha=0.5)
         ax2.legend()
 
+        plt.tight_layout()
+        plt.show()  
+
     parametri = np.array(params)
     incertezze = np.array(uncertainties)
 
     return parametri, incertezze, chi_squared, chi_squared_reduced, [integral, integral_unc], [x_fit, y_fit, bin_centers, counts]
 
 # BODE DIAGRAM FIT
-def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=None, tipo='basso', xlabel="Frequenza [Hz]", ylabel="Guadagno [dB]", titolo='Fit filtro', plot=False):
+def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=None, tipo='low',
+         xlabel="Frequenza [Hz]", ylabel="Guadagno [dB]", titolo='Fit filtro', plot=False):
 
     # Lettura dati
     if filename is not None:
         dati = np.loadtxt(filename)
         frq, vin, sin, vout, sout = dati[:, 0], dati[:, 1], dati[:, 2], dati[:, 3], dati[:, 4]
-    elif f is not None and vin is not None and vout is not None:
-        frq, vin, sin, vout, sout = np.array(f), np.array(in_), np.array(erin), np.array(out_), np.array(erout)
+    elif f is not None and in_ is not None and out_ is not None:
+        frq = np.array(f)
+        vin = np.array(in_)
+        vout = np.array(out_)
+        sin = np.array(erin) if erin is not None else None
+        sout = np.array(erout) if erout is not None else None
     else:
-        raise ValueError("Fornire o un filename oppure i vettori f, in_ e out_")
+        raise ValueError("A filename or f, in_, out_ must be provided.")    
 
     # Calcolo guadagno in dB
     gain_dB = 20 * np.log10(vout / vin)
-    if sin is None or np.all(sin == 0):
+    if sin is None:
         sin = np.zeros_like(vin)
-    if sout is None or np.all(sout == 0):
+    if sout is None:
         sout = np.zeros_like(vout)
     if np.any(sin != 0) or np.any(sout != 0):
-        sigma_gain_dB = (20 / np.log(10)) * np.sqrt(((vout / vin) * sin)**2 + ((vout * vin) * sout)**2)
+        sigma_gain_dB = (20 / np.log(10)) * np.sqrt(((sout * vin / vout)**2 + (sin / (vin*vout))**2))
         fit_with_weights = True
     else:
         sigma_gain_dB = None
         fit_with_weights = False
+
 
     # Definizione modelli
     def low_pass(f, f_cut):
         return 20 * np.log10(1 / np.sqrt(1 + (f / f_cut)**2))
 
     def high_pass(f, f_cut):
-        return 20 * np.log10(1 / np.sqrt(1 + (f_cut**2 / f**2)))
+        return 20 * np.log10(1 / np.sqrt(1 + (f_cut / f)**2))
 
     def band_pass(f, f0, gamma, A):
         return 20 * np.log10(A * (f * gamma) / np.sqrt((f**2 - f0**2)**2 + (f * gamma)**2))
 
-    # Scelta modello in base al tipo di filtro
-    if tipo == 'basso':
+    # Scelta modello
+    if tipo == 'low':
         model = low_pass
         guess = [1000]
-    elif tipo == 'alto':
+    elif tipo == 'high':
         model = high_pass
-        guess = [10000]
-    elif tipo == 'banda':
+        guess = [1000]
+    elif tipo == 'band':
         model = band_pass
-        guess = [1000, 1000, 1]  # f0, gamma, A
+        guess = [1000, 1000, 1]
     else:
-        raise ValueError("Tipo di filtro non valido. Usa 'basso', 'alto' o 'banda'.")
+        raise ValueError("Tipo filtro non valido. Usa 'low', 'high' o 'band'.")
 
-    # Fit con o senza pesi
+    # Fit
     if fit_with_weights:
-        popt, pcov = curve_fit(model, frq, gain_dB, p0=guess,
-                               sigma=sigma_gain_dB, absolute_sigma=True)
+        popt, pcov = curve_fit(model, frq, gain_dB, p0=guess, sigma=sigma_gain_dB, absolute_sigma=True)
     else:
         popt, pcov = curve_fit(model, frq, gain_dB, p0=guess)
 
     err = np.sqrt(np.diag(pcov))
-
-    # Calcolo residui e chi^2
     fit_vals = model(frq, *popt)
     residui = gain_dB - fit_vals
 
-    if fit_with_weights:
-        chi2 = np.sum((residui / sigma_gain_dB)**2)
-    else:
-        chi2 = np.sum(residui**2 / np.var(gain_dB))
-
+    chi2 = np.sum(((gain_dB - fit_vals) / sigma_gain_dB)**2) if fit_with_weights else np.sum(residui**2 / np.var(gain_dB))
     chi2_red = chi2 / (len(frq) - len(popt))
 
-    # Stampa risultati
-    print(f"Parametri: {popt}")
-    print(f"Incertezze: {err}")
-    print(f"Chi² = {chi2:.4f}")
-    print(f"Chi² ridotto = {chi2_red:.4f}")
+    # Stampa ordinata
+    print("\nOptimised parameters")
+    print("--------------------------------------------------")
+    if tipo == 'low':
+        print(f"Cutoff frequency (f_cut) = {popt[0]:.3f} ± {err[0]:.3f}")
+    elif tipo == 'high':
+        print(f"Cutoff frequency (f_cut) = {popt[0]:.3f} ± {err[0]:.3f}")
+    elif tipo == 'band':
+        print(f"Resonant frequency (f₀) = {popt[0]:.3f} ± {err[0]:.3f}")
+        print(f"Gamma (Γ) = {popt[1]:.3f} ± {err[1]:.3f}")
+        print(f"Amplitude (A) = {popt[2]:.3f} ± {err[2]:.3f}")
+    print(f"Chi-squared = {chi2:.4f}")
+    print(f"Reduced chi-squared = {chi2_red:.4f}")
 
     # Plot
     if plot:
@@ -1248,19 +1266,19 @@ def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=N
         fig = plt.figure(figsize=(7, 8))
         gs = fig.add_gridspec(5, 1, height_ratios=[1, 0.6, 5, 0.6, 1])
 
-        # Tabella
         ax_table = fig.add_subplot(gs[:2, 0])
         ax_table.axis('tight')
         ax_table.axis('off')
 
         table_data = []
-        if tipo == 'banda':
-            labels = ['f₀', 'Γ', 'A']
+        if tipo == 'band':
+            table_data += [
+                ["f₀", f"{popt[0]:.3f} ± {err[0]:.3f}"],
+                ["Γ", f"{popt[1]:.3f} ± {err[1]:.3f}"],
+                ["A", f"{popt[2]:.3f} ± {err[2]:.3f}"]
+            ]
         else:
-            labels = ['f_cut']
-
-        for i, (label, val, e) in enumerate(zip(labels, popt, err)):
-            table_data.append([label, f"{val:.3f} ± {e:.3f}"])
+            table_data += [["f_cut", f"{popt[0]:.3f} ± {err[0]:.3f}"]]
         table_data += [["Chi²", f"{chi2:.4f}"], ["Chi² rid.", f"{chi2_red:.4f}"]]
 
         table = ax_table.table(
@@ -1281,7 +1299,6 @@ def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=N
                 cell.set_text_props(weight='bold', color='black')
                 cell.set_facecolor("lightblue")
 
-        # Fit
         ax1 = fig.add_subplot(gs[2, 0])
         ax1.errorbar(frq, gain_dB, color='black', label='Dati', fmt='o', markersize=3, capsize=2)
         ax1.plot(frq_fit, fit_curve, color='red', label='Fit')
@@ -1292,7 +1309,6 @@ def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=N
         ax1.grid(alpha=0.5)
         ax1.legend()
 
-        # Residuals
         ax2 = fig.add_subplot(gs[3:, 0], sharex=ax1)
         ax2.errorbar(frq, residui, color='black', label='Residui', fmt='o', markersize=3, capsize=2)
         ax2.axhline(0, color='red', linestyle='--', lw=1)
