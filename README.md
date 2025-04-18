@@ -1,8 +1,15 @@
-Basic Physics Analysis library
+# Basic Physics Analysis library
 
-SHORT DESCRIPTION: little python library for the data analysis of simple university experiments. 
+## 📝 Short description: 
+little python library for the data analysis of simple university experiments (mainly electronics and gamma spectroscopy experiments) 
 
-## ⚠️WARNING: 
+## 👩‍🔬 Author
+Benedetta Rasera 
+benedetta.rasera@studenti.unipd.it, raserab3nedetta@gmail.com
+Developed as part of the Master's Degree in Physics at the University of Padua
+If you need any clarification or want to make some notes about possibile errors present in the library please write me an email with "BASICFUNC LIBRARY - GitHub" as object
+
+## ⚠️ WARNING: 
 So far some comments are still in Italian, sooner or later I will translate them to English
 
 ## ✅ Included functions
@@ -19,13 +26,14 @@ It is so far provided with
   - lognormal fitting
   - Bode diagram fitting.
 
-## 🧪 Requirements
+## 🔧 Requirements
 - `numpy`
 - `matplotlib`
 - `scipy`
 
 ## 📦 How to Use
 After importing the file in your code (e.g. as `import basicfunc as bf`), you can use any function directly.
+In the repository you can also find a Jupyter Notebook called `bfexamples.ipynb` where there is an example for each of the functions of the library, please have a look at it
 
 ## ⚙️ An example
 For example if you want to use the function called normal to fit a gaussian function over some data with a normal trend you can write in your code what follows: 
