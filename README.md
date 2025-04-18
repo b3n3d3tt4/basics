@@ -5,7 +5,7 @@ little python library for the data analysis of simple university experiments (ma
 
 ## 👩‍🔬 Author
 Benedetta Rasera 
-benedetta.rasera@studenti.unipd.it, raserab3nedetta@gmail.com
+`benedetta.rasera@studenti.unipd.it`, `raserab3nedetta@gmail.com`
 Developed as part of the Master's Degree in Physics at the University of Padua
 If you need any clarification or want to make some notes about possibile errors present in the library please write me an email with "BASICFUNC LIBRARY - GitHub" as object
 
