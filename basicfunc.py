@@ -35,7 +35,7 @@ import matplotlib.cm as cm
 from scipy.optimize import curve_fit
 from scipy.stats import norm
 from scipy.special import erfc
-from scipy.optimize import minimize
+import os
 
 
 ###############################################################################################
@@ -116,7 +116,8 @@ def chi2(model, params, x, y, sx=None, sy=None):
 ###############################################################################################
 
 # NORMAL FIT
-def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', 
+           xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False, save=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
       "- A numpy array with the uncertainties\n"
@@ -239,6 +240,9 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
         ax2.legend()
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()
 
     plot = [x_fit, y_fit, bin_centers, counts]
@@ -250,7 +254,7 @@ def normal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-
 
 # COMPTON EDGE FIT via erfc
 def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title',
-            xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+            xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False, save=False):
     print("This fit returns a list which contains, in order:\n"
           "- A numpy array with the parameters\n"
           "- A numpy array with the uncertainties\n"
@@ -375,6 +379,9 @@ def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y
         ax2.legend()
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()
 
     parametri = np.array([mu, sigma, rate, bkg])
@@ -423,7 +430,7 @@ def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo=
     return bin_centers, corrected_hist
 
 # LINEAR FIT
-def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False, save=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
       "- A numpy array with the uncertainties\n"
@@ -537,6 +544,9 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
         ax2.legend()
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()
 
     parametri = np.array([m, q])
@@ -545,7 +555,7 @@ def linear(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='tit
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 # EXPONENTIAL FIT
-def exponential(x, y, sx=None, sy=None, tipo="falling", xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+def exponential(x, y, sx=None, sy=None, tipo="falling", xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False, save=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
       "- A numpy array with the uncertainties\n"
@@ -657,6 +667,9 @@ def exponential(x, y, sx=None, sy=None, tipo="falling", xlabel="X-axis", ylabel=
         ax2.legend()
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()
 
 
@@ -666,7 +679,7 @@ def exponential(x, y, sx=None, sy=None, tipo="falling", xlabel="X-axis", ylabel=
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 # PARABOLIC FIT
-def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False, save=False):
     print("This fit returns a list which contains, in order:\n"
         "- A numpy array with the parameters\n"
         "- A numpy array with the uncertainties\n"
@@ -784,6 +797,9 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
         ax2.legend()
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()
 
     parametri = np.array([a, b, c])
@@ -792,7 +808,7 @@ def parabolic(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 # LORENTZIAN FIT
-def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False, save=False):
     print("This fit returns a list which contains, in order:\n"
         "- A numpy array with the parameters\n"
         "- A numpy array with the uncertainties\n"
@@ -918,6 +934,9 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo=
         ax2.grid(alpha=0.5)
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()
 
     parametri = np.array([a, gamma, x0])
@@ -926,7 +945,7 @@ def lorentzian(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo=
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 # BREIT-WIGNER FIT
-def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False):
+def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', plot=False, save=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
       "- A numpy array with the uncertainties\n"
@@ -1044,6 +1063,9 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
         ax2.legend()
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()
 
     parametri = np.array([a, gamma, x0])
@@ -1052,7 +1074,8 @@ def breitwigner(x, y, sx=None, sy=None, xlabel="X-axis", ylabel="Y-axis", titolo
     return parametri, incertezze, residui, chi_squared, chi_squared_reduced
 
 # LOGNORMAL FIT
-def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False):
+def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y-axis", titolo='title', 
+              xmin=None, xmax=None, x1=None, x2=None, b=None, n=None, plot=False, save=False):
     print("This fit returns a list which contains, in order:\n"
       "- A numpy array with the parameters\n"
       "- A numpy array with the uncertainties\n"
@@ -1173,6 +1196,9 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
         ax2.legend()
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()  
 
     parametri = np.array(params)
@@ -1182,7 +1208,7 @@ def lognormal(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel=
 
 # BODE DIAGRAM FIT
 def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=None, tipo='low',
-         xlabel="Frequenza [Hz]", ylabel="Guadagno [dB]", titolo='Fit filtro', plot=False):
+         xlabel="Frequenza [Hz]", ylabel="Guadagno [dB]", titolo='Fit filtro', plot=False, save=False):
 
     # Lettura dati
     if filename is not None:
@@ -1321,6 +1347,9 @@ def bode(f=None, in_=None, out_=None, sf=None, erin=None, erout=None, filename=N
         ax2.legend()
 
         plt.tight_layout()
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
         plt.show()
 
     parametri = np.array(popt)
