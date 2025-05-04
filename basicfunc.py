@@ -392,7 +392,7 @@ def compton(data=None, bin_centers=None, counts=None, xlabel="X-axis", ylabel="Y
     return parametri, incertezze, residui, chi_quadro, reduced_chi, ints, plot_data
 
 # BACKGROUND SUBTRACTION
-def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo='Title'):
+def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo='Title', plot=False, save=False):
     # Calcola i bin
     if bins is None:
         bins = max(int(data.max()), int(fondo.max()))
@@ -417,15 +417,18 @@ def background(data, fondo, bins=None, xlabel="X-axis", ylabel="Counts", titolo=
     bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
 
     # Visualizzazione
-    plt.figure(figsize=(6.4, 4.8))
-    plt.step(bin_centers, corrected_hist, label="Background subtracted", color='blue')
-    # plt.bar(bin_centers, corrected_hist, width=np.diff(bin_edges), color='blue', alpha=0.5, label="Background subtracted") questo fa le barre colorate
-    plt.legend()
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title(titolo)
-    plt.grid(True)
-    plt.show()
+    if plot:
+        plt.figure(figsize=(7, 8))
+        plt.step(bin_centers, corrected_hist, label="Background subtracted", color='blue')
+        plt.legend()
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title(titolo)
+        plt.grid(True)
+        if save:
+            os.makedirs("grafici", exist_ok=True)
+            plt.savefig("grafici/" + titolo + ".pdf", dpi=300, bbox_inches='tight')
+        plt.show()
 
     return bin_centers, corrected_hist
 
