@@ -14,7 +14,7 @@
 #       and for early lab works in the Master's degree in Physics (at least in Padua).       #
 #       Many of these functions were implemented for data analysis in electronics            #
 #       and gamma spectroscopy experiments, but they can also be used for similar purposes.  #
-#       The fitting functions included in this library are:                                  #
+#       The functions included in this library are:                                          #
 #           - Gaussian fit                                                                   #
 #           - Compton edge fit (based on the error function)                                 #
 #           - Background subtraction from a spectrum                                         #
