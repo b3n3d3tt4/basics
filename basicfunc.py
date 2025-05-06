@@ -91,10 +91,11 @@ def filtro_alto(omega, R, C):
 def filtro_banda(omega, R, C, omega_0, Q):
     return (1j * omega * R * C) / ((1j * omega) ** 2 + (omega_0 / Q) * (1j * omega) + omega_0**2)
 
-#funzione per i residui di tutte le funzioni che fitta questa libreria
+# funzione per i residui di tutte le funzioni che fitta questa libreria
 def res(data, fit):
     return data - fit
 
+# funzione per calcolare il chi-quadro
 def chi2(model, params, x, y, sx=None, sy=None):
     # Calcola il modello y in base ai parametri
     y_model = model(x, *params)
