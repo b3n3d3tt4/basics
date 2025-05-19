@@ -62,13 +62,3 @@ If you want to use the linear regression function your code will be:
   ```bf.linear(datax, datay, errorx, errory, 'xlabel', 'ylabel', titolo='title', plot=True)```
   
   ⚠️ IMPORTANT: if you don't specify any errorx or errory they will not be taken into consideration while if you specify just one of them this will be taken into account but the other one will not.
-  
-  it will return you:
-  
-    1. A numpy array with the parameters
-    2. A numpy array with the uncertainties
-    3. A numpy array with the residuals
-    4. The chi squared
-    5. The reduced chi squared
-
-  Moreover il will provide you a plot (with the labels and title you wrote) with the data and the fitted function, the residuals and a table with the parameters
