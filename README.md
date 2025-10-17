@@ -55,7 +55,7 @@ For example if you want to use the function called normal to fit a gaussian func
     6. The integral of the histogram in the range mu ± n*sigma
     7. The plot data (x_fit, y_fit, bin_centers, counts) if you need to plot other thing
 
-  Morevoer il will provide you the plot within x1 and x2 with the labels and title you set, with a gaussina fitted on top within xmin and xmax
+  Morevoer it will provide you the plot within x1 and x2 with the labels and title you set, with a gaussian fitted on top within xmin and xmax
 
 If you want to use the linear regression function your code will be:
 
